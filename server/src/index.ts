@@ -1,3 +1,4 @@
+import 'dotenv/config';
 import express from 'express';
 import { createServer } from 'http';
 import { Server } from 'socket.io';
@@ -9,6 +10,7 @@ import type {
   SocketData,
 } from './types.js';
 import authRouter from './routes/auth.js';
+import { registerAuthMiddleware } from './socket/authMiddleware.js';
 
 const app = express();
 app.use(cors({ origin: 'http://localhost:5173' }));
@@ -27,6 +29,8 @@ export const io = new Server<
 >(httpServer, {
   cors: { origin: 'http://localhost:5173' },
 });
+
+registerAuthMiddleware(io);
 
 app.use('/api/auth', authRouter);
 
