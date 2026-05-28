@@ -11,7 +11,9 @@ import type {
 } from './types.js';
 import authRouter from './routes/auth.js';
 import weatherRouter from './routes/weather.js';
+import { messagesRouter } from './routes/messages.js';
 import { registerAuthMiddleware } from './socket/authMiddleware.js';
+import { registerRoomHandlers } from './socket/roomHandlers.js';
 
 const app = express();
 app.use(cors({ origin: 'http://localhost:5173' }));
@@ -32,9 +34,11 @@ export const io = new Server<
 });
 
 registerAuthMiddleware(io);
+registerRoomHandlers(io);
 
 app.use('/api/auth', authRouter);
 app.use('/api/weather', weatherRouter);
+app.use('/api/messages', messagesRouter(io));
 
 app.get('/health', (_req, res) => {
   res.json({ status: 'ok' });
