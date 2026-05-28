@@ -8,6 +8,7 @@ import type {
   InterServerEvents,
   SocketData,
 } from './types.js';
+import authRouter from './routes/auth.js';
 
 const app = express();
 app.use(cors({ origin: 'http://localhost:5173' }));
@@ -26,6 +27,8 @@ export const io = new Server<
 >(httpServer, {
   cors: { origin: 'http://localhost:5173' },
 });
+
+app.use('/api/auth', authRouter);
 
 app.get('/health', (_req, res) => {
   res.json({ status: 'ok' });
