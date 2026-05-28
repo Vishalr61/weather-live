@@ -10,6 +10,7 @@ import type {
   SocketData,
 } from './types.js';
 import authRouter from './routes/auth.js';
+import weatherRouter from './routes/weather.js';
 import { registerAuthMiddleware } from './socket/authMiddleware.js';
 
 const app = express();
@@ -33,6 +34,7 @@ export const io = new Server<
 registerAuthMiddleware(io);
 
 app.use('/api/auth', authRouter);
+app.use('/api/weather', weatherRouter);
 
 app.get('/health', (_req, res) => {
   res.json({ status: 'ok' });
