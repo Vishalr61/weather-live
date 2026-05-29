@@ -2,6 +2,7 @@ import { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext.tsx';
 import { loginRequest } from '../api/auth.ts';
+import '../styles/login.css';
 
 export function Login() {
   const { login } = useAuth();

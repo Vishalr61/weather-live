@@ -1,5 +1,6 @@
 import { Toast } from './Toast.tsx';
 import type { ToastMessage } from '../hooks/useMessages.ts';
+import '../styles/toast.css';
 
 interface ToastContainerProps {
   toasts: ToastMessage[];

@@ -6,6 +6,7 @@ import { useMessages } from '../hooks/useMessages.ts';
 import { fetchCities, fetchWeather } from '../api/weather.ts';
 import { ToastContainer } from '../components/ToastContainer.tsx';
 import type { City, WeatherResponse } from '../types.ts';
+import '../styles/home.css';
 
 export function Home() {
   const { logout } = useAuth();
