@@ -2,13 +2,16 @@ import { useEffect, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext.tsx';
 import { useSocket } from '../hooks/useSocket.ts';
+import { useMessages } from '../hooks/useMessages.ts';
 import { fetchCities, fetchWeather } from '../api/weather.ts';
+import { ToastContainer } from '../components/ToastContainer.tsx';
 import type { City, WeatherResponse } from '../types.ts';
 
 export function Home() {
   const { logout } = useAuth();
   const navigate = useNavigate();
   const socket = useSocket();
+  const { toasts, dismiss } = useMessages(socket);
 
   const [cities, setCities] = useState<City[]>([]);
   const [currentCityId, setCurrentCityId] = useState('');
@@ -88,6 +91,7 @@ export function Home() {
           </div>
         )}
       </main>
+      <ToastContainer toasts={toasts} dismiss={dismiss} />
     </div>
   );
 }
