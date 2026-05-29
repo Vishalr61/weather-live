@@ -31,6 +31,11 @@ export function useSocket(): { socket: AppSocket | null; status: ConnectionStatu
 
     newSocket.on('connect',    () => setStatus('connected'));
     newSocket.on('disconnect', () => setStatus('disconnected'));
+    // socket.io-client's reconnect event fires on the Manager (newSocket.io),
+    // not the Socket itself. Without this, the status would stay amber after a
+    // successful reconnect because 'connect' on the Socket only fires on the
+    // initial connection in a reconnect cycle.
+    newSocket.io.on('reconnect', () => setStatus('connected'));
 
     // connect_error fires repeatedly as socket.io-client retries on a sustained
     // outage — setStatus('reconnecting') is idempotent so repeated calls are fine.

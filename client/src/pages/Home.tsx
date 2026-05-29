@@ -41,6 +41,22 @@ export function Home() {
     };
   }, [socket, currentCityId]);
 
+  // socket.io-client reuses the same Socket instance across reconnects, so
+  // the room-join useEffect above doesn't re-fire on disconnect/reconnect
+  // cycles. This effect explicitly re-emits joinCity when the underlying
+  // connection comes back, so the user's room subscription survives a
+  // backend bounce.
+  useEffect(() => {
+    if (!socket || !currentCityId) return;
+    const rejoin = () => socket.emit('joinCity', currentCityId);
+    socket.on('connect', rejoin);
+    socket.io.on('reconnect', rejoin);
+    return () => {
+      socket.off('connect', rejoin);
+      socket.io.off('reconnect', rejoin);
+    };
+  }, [socket, currentCityId]);
+
   const selectCity = async (cityId: string) => {
     if (!cityId) return;
     setCurrentCityId(cityId);
