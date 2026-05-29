@@ -5,13 +5,14 @@ import { useSocket } from '../hooks/useSocket.ts';
 import { useMessages } from '../hooks/useMessages.ts';
 import { fetchCities, fetchWeather } from '../api/weather.ts';
 import { ToastContainer } from '../components/ToastContainer.tsx';
+import { ConnectionStatus } from '../components/ConnectionStatus.tsx';
 import type { City, WeatherResponse } from '../types.ts';
 import '../styles/home.css';
 
 export function Home() {
   const { logout } = useAuth();
   const navigate = useNavigate();
-  const socket = useSocket();
+  const { socket, status } = useSocket();
   const { toasts, dismiss } = useMessages(socket);
 
   const [cities, setCities] = useState<City[]>([]);
@@ -65,6 +66,7 @@ export function Home() {
     <div className="home-container">
       <header className="home-header">
         <span className="home-title">⛅ Weather Live</span>
+        <ConnectionStatus status={status} />
         <button onClick={handleLogout} className="logout-btn">Sign out</button>
       </header>
       <main className="home-main">
