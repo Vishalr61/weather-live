@@ -2,10 +2,7 @@ import { BrowserRouter, Routes, Route, Navigate } from 'react-router-dom';
 import { AuthProvider } from './context/AuthContext.tsx';
 import { ProtectedRoute } from './components/ProtectedRoute.tsx';
 import { Login } from './pages/Login.tsx';
-
-function Home() {
-  return <div>Home</div>;
-}
+import { Home } from './pages/Home.tsx';
 
 export default function App() {
   return (

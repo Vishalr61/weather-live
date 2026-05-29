@@ -1,4 +1,4 @@
-import { createContext, useContext, useState } from 'react';
+import { createContext, useCallback, useContext, useState } from 'react';
 import type { ReactNode } from 'react';
 
 interface AuthContextValue {
@@ -17,15 +17,15 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
   // localStorage is acceptable for a demo but is vulnerable to XSS.
   // In production: HttpOnly cookie set by the server, not accessible to JS.
-  const login = (t: string) => {
+  const login = useCallback((t: string) => {
     localStorage.setItem('token', t);
     setToken(t);
-  };
+  }, []);
 
-  const logout = () => {
+  const logout = useCallback(() => {
     localStorage.removeItem('token');
     setToken(null);
-  };
+  }, []);
 
   // Note: isAuthenticated is true for any non-null token string, including
   // expired ones. ProtectedRoute lets the user through, but the socket
