@@ -1,10 +1,10 @@
 import { useState } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext.tsx';
-import { loginRequest } from '../api/auth.ts';
+import { registerRequest } from '../api/auth.ts';
 import '../styles/login.css';
 
-export function Login() {
+export function Register() {
   const { login } = useAuth();
   const navigate = useNavigate();
   const [username, setUsername] = useState('');
@@ -17,11 +17,11 @@ export function Login() {
     setError(null);
     setLoading(true);
     try {
-      const { token } = await loginRequest(username, password);
+      const { token } = await registerRequest(username, password);
       login(token);
       navigate('/');
     } catch (err) {
-      setError(err instanceof Error ? err.message : 'Login failed');
+      setError(err instanceof Error ? err.message : 'Registration failed');
     } finally {
       setLoading(false);
     }
@@ -39,6 +39,8 @@ export function Login() {
             value={username}
             onChange={(e) => setUsername(e.target.value)}
             autoComplete="username"
+            minLength={3}
+            maxLength={30}
             required
           />
         </div>
@@ -49,16 +51,17 @@ export function Login() {
             type="password"
             value={password}
             onChange={(e) => setPassword(e.target.value)}
-            autoComplete="current-password"
+            autoComplete="new-password"
+            minLength={6}
             required
           />
         </div>
         {error && <p className="form-error">{error}</p>}
         <button type="submit" disabled={loading}>
-          {loading ? 'Signing in...' : 'Sign in'}
+          {loading ? 'Creating account...' : 'Create account'}
         </button>
         <p className="form-switch">
-          Don't have an account? <Link to="/register">Create one</Link>
+          Already have an account? <Link to="/login">Sign in</Link>
         </p>
       </form>
     </div>

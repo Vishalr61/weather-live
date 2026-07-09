@@ -37,7 +37,7 @@ Open [http://localhost:5173](http://localhost:5173).
 
 ## Demo credentials
 
-`demo / demo` or `alice / alice123`
+`demo / demo` or `alice / alice123` — or register a new account from the login page. Registered users are in-memory like everything else here: gone on server restart.
 
 ## Try it
 
@@ -176,7 +176,7 @@ weather-live/
 - **Socket.IO multi-client integration tests** for room targeting — covered manually (see Testing notes) and via the `messagesRouter` supertest suite with a mocked `io`, but not with real connected sockets end to end
 - **Fetch-mocked tests for the poller and the live-Open-Meteo routes** (`/api/weather`, `/forecast`, `/history`) — same reasoning as the alert-threshold logic: mocking `fetch` is more effort than this portfolio-scale project needs when live curl checks already cover them each time they change
 - **HttpOnly cookies** for token storage — eliminates the XSS surface of localStorage
-- **User registration flow** — currently users are hardcoded; a registration endpoint with email verification is the obvious next step
+- **Email verification on registration** — `POST /api/auth/register` exists now (see below) but doesn't verify email ownership, since that needs real SMTP/third-party infrastructure to actually test end to end
 - **A real database for alert history** — currently an append-to-disk JSON file (`server/.data/alert-history.json`, capped at 100 entries), which survives restarts but isn't queryable/filterable the way a real deployment would want
 
 ## Testing notes

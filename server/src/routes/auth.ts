@@ -1,7 +1,8 @@
 import { Router } from 'express';
 import { z } from 'zod';
-import { findByUsername, verifyPassword } from '../auth/users.js';
+import { addUser, findByUsername, hashPassword, verifyPassword } from '../auth/users.js';
 import { signToken } from '../auth/jwt.js';
+import { registerRateLimit } from '../middleware/rateLimit.js';
 
 const router = Router();
 
@@ -13,6 +14,15 @@ const DUMMY_HASH = '$2b$10$CwTycUXWue0Thq9StjUM0uJ8p8ZjhOJHAeVBpUX2FxEEBw//sIVh6
 const LoginBody = z.object({
   username: z.string().min(1),
   password: z.string().min(1),
+});
+
+const RegisterBody = z.object({
+  username: z
+    .string()
+    .min(3, 'username must be at least 3 characters')
+    .max(30, 'username must be at most 30 characters')
+    .regex(/^[a-zA-Z0-9_-]+$/, 'username may only contain letters, numbers, underscores, and hyphens'),
+  password: z.string().min(6, 'password must be at least 6 characters'),
 });
 
 router.post('/login', async (req, res) => {
@@ -39,6 +49,27 @@ router.post('/login', async (req, res) => {
   }
 
   res.json({ token: signToken(user.id) });
+});
+
+// No email verification — would need real SMTP/third-party infrastructure
+// to actually test end to end. In memory like the rest of this store: a
+// registered user is gone on restart, same trade-off as the demo users.
+router.post('/register', registerRateLimit, async (req, res) => {
+  const result = RegisterBody.safeParse(req.body);
+  if (!result.success) {
+    res.status(400).json({ error: result.error.issues[0]?.message ?? 'invalid username or password' });
+    return;
+  }
+
+  const { username, password } = result.data;
+  if (findByUsername(username)) {
+    res.status(409).json({ error: 'username is already taken' });
+    return;
+  }
+
+  const passwordHash = await hashPassword(password);
+  const user = addUser(username, passwordHash);
+  res.status(201).json({ token: signToken(user.id) });
 });
 
 export default router;

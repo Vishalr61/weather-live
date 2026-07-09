@@ -162,10 +162,21 @@ enhancement work has continuity across sessions.
   and avoid depending on a real `.env` file existing for `npm test`.
   39 tests total, all passing; confirmed no test files leak into `dist/`
   and the real dev server's login still works afterward.
-
-## In progress / queued (this batch)
-
-- [ ] User registration flow
+- **User registration flow** — new `POST /api/auth/register` (username
+  3-30 chars alphanumeric/underscore/hyphen, password 6+ chars), hashes
+  with the same `bcrypt` helper as login, auto-logs-in on success, and
+  gets its own `registerRateLimit` (5/10min per IP — a different abuse
+  vector than the ops-push endpoints, so it doesn't share `pushRateLimit`'s
+  budget). No email verification — same reasoning as the fetch-mocking
+  gaps above, real SMTP infrastructure would be needed to test it
+  properly. New `Register.tsx` page mirrors `Login.tsx`, with links
+  between the two. 5 new supertest cases plus a registration-then-login
+  round trip. Verified live in a real browser: register → auto-login →
+  logout → re-login with the same account → duplicate username correctly
+  shows a form error rather than navigating away. Along the way, hit the
+  registration rate limit myself via earlier curl testing mid-session —
+  restarted the dev server for a clean slate rather than waiting out the
+  10-minute window, which incidentally re-confirmed the limiter works.
 
 ## Future ideas (not yet scheduled)
 

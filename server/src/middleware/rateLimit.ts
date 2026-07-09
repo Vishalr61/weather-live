@@ -13,3 +13,16 @@ export const pushRateLimit = rateLimit({
     res.status(429).json({ error: 'Too many requests — please try again in a minute.' });
   },
 });
+
+// A separate, stricter instance for account creation — a different abuse
+// vector (spam-registering accounts) from the ops-push endpoints above, so
+// it gets its own budget rather than sharing pushRateLimit's.
+export const registerRateLimit = rateLimit({
+  windowMs: 10 * 60_000,
+  limit: 5,
+  standardHeaders: true,
+  legacyHeaders: false,
+  handler: (_req, res) => {
+    res.status(429).json({ error: 'Too many registration attempts — please try again later.' });
+  },
+});
