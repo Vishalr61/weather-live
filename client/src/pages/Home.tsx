@@ -7,7 +7,7 @@ import { useWeatherSnapshot } from '../hooks/useWeatherSnapshot.ts';
 import { useGlobalAlerts } from '../hooks/useGlobalAlerts.ts';
 import { useSoundscape } from '../hooks/useSoundscape.ts';
 import { useWatchlist } from '../hooks/useWatchlist.ts';
-import { fetchCities, fetchForecast, fetchWeather } from '../api/weather.ts';
+import { fetchCities, fetchForecast, fetchHistory, fetchWeather } from '../api/weather.ts';
 import { ToastContainer } from '../components/ToastContainer.tsx';
 import { ConnectionStatus } from '../components/ConnectionStatus.tsx';
 import { Globe } from '../components/Globe.tsx';
@@ -15,6 +15,7 @@ import type { FlyToRequest } from '../components/Globe.tsx';
 import { AlertTicker } from '../components/AlertTicker.tsx';
 import { WeatherParticles } from '../components/WeatherParticles.tsx';
 import { ForecastStrip } from '../components/ForecastStrip.tsx';
+import { TrendSparkline } from '../components/TrendSparkline.tsx';
 import { CitySearch } from '../components/CitySearch.tsx';
 import { SoundToggle } from '../components/SoundToggle.tsx';
 import { Watchlist } from '../components/Watchlist.tsx';
@@ -36,6 +37,7 @@ export function Home() {
   const [weatherError, setWeatherError] = useState<string | null>(null);
   const [loading, setLoading] = useState(false);
   const [forecast, setForecast] = useState<ForecastDay[]>([]);
+  const [history, setHistory] = useState<ForecastDay[]>([]);
   const [flyTo, setFlyTo] = useState<FlyToRequest | null>(null);
   const { enabled: soundEnabled, toggle: toggleSound } = useSoundscape(weather?.weatherCode ?? null);
 
@@ -56,6 +58,7 @@ export function Home() {
     setWeather(null);
     setWeatherError(null);
     setForecast([]);
+    setHistory([]);
     setLoading(true);
     try {
       const data = await fetchWeather(cityId);
@@ -74,6 +77,13 @@ export function Home() {
       setForecast(data.days);
     } catch {
       setForecast([]);
+    }
+
+    try {
+      const data = await fetchHistory(cityId);
+      setHistory(data.days);
+    } catch {
+      setHistory([]);
     }
   };
 
@@ -153,6 +163,7 @@ export function Home() {
                 <h2>{weather.city}</h2>
                 <p className="weather-temp">{weather.temp}°C</p>
                 <p className="weather-desc">{weather.description}</p>
+                <TrendSparkline days={history} />
                 <ForecastStrip days={forecast} />
               </div>
             </div>

@@ -36,3 +36,11 @@ export async function fetchAlertHistory(): Promise<GlobalAlertPayload[]> {
   const data = (await res.json()) as { alerts: GlobalAlertPayload[] };
   return data.alerts;
 }
+
+// Same response shape as fetchForecast — the server route reuses the same
+// daily-block parsing, just with past_days instead of forecast_days.
+export async function fetchHistory(cityId: string): Promise<ForecastResponse> {
+  const res = await fetch(`/api/weather/history?city=${encodeURIComponent(cityId)}`);
+  if (!res.ok) throw new Error('Failed to load weather history');
+  return res.json() as Promise<ForecastResponse>;
+}

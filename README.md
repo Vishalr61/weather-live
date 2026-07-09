@@ -131,14 +131,19 @@ weather-live/
     ├── public/textures/   — Earth day/night/normal/specular maps (MIT, three.js examples)
     ├── src/
     │   ├── pages/         — Login, Home
-    │   ├── components/    — Globe, AlertTicker, WeatherParticles, Toast, ToastContainer,
-    │   │                    ProtectedRoute, ConnectionStatus
+    │   ├── components/    — Globe, AlertTicker, WeatherParticles, ForecastStrip,
+    │   │                    TrendSparkline, Sparkline, CitySearch, Watchlist,
+    │   │                    SoundToggle, Toast, ToastContainer, ProtectedRoute,
+    │   │                    ConnectionStatus
     │   ├── three/         — geoMath (lat/lng↔sphere, subsolar point), weatherVisuals,
     │   │                    globeScene (imperative Three.js scene)
-    │   ├── hooks/         — useSocket, useMessages, useWeatherSnapshot, useGlobalAlerts
+    │   ├── audio/         — soundscapeEngine (imperative Web Audio graph)
+    │   ├── hooks/         — useSocket, useMessages, useWeatherSnapshot,
+    │   │                    useGlobalAlerts, useWatchlist, useSoundscape
     │   ├── context/       — AuthContext
     │   ├── api/           — fetch wrappers (auth, weather)
-    │   ├── styles/        — global, login, home, toast, globe, alertTicker
+    │   ├── styles/        — global, login, home, toast, globe, alertTicker,
+    │   │                    citySearch, watchlist, forecastStrip, trendSparkline
     │   └── types.ts       — mirrored client/server types
     └── vite.config.ts
 ```

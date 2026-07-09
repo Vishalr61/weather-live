@@ -1,0 +1,23 @@
+.trend-sparkline {
+  margin-top: 16px;
+  padding-top: 16px;
+  border-top: 1px solid var(--border);
+}
+
+.trend-sparkline-header {
+  display: flex;
+  justify-content: space-between;
+  font-size: 0.75rem;
+  color: var(--muted);
+  margin-bottom: 6px;
+}
+
+.trend-sparkline-range {
+  font-variant-numeric: tabular-nums;
+}
+
+.sparkline {
+  display: block;
+  width: 100%;
+  height: auto;
+}

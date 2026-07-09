@@ -1,13 +1,32 @@
 import { Router } from 'express';
+import type { Request, Response } from 'express';
 import { z } from 'zod';
 import { cities, findCity } from '../data/cities.js';
+import type { City } from '../data/cities.js';
 import { describeWeatherCode } from '../weather/wmoDescriptions.js';
 import { getAlertHistory } from '../weather/alertHistory.js';
+import { fetchDailyBlock } from '../weather/openMeteoClient.js';
 import type { PollResult, WeatherPollerHandle } from '../weather/poller.js';
 
 const WeatherQuery = z.object({
   city: z.string().min(1),
 });
+
+// Shared by every route below that takes ?city= — writes the 400/404
+// response itself and returns undefined so the caller can just `if (!city) return;`.
+function resolveCityFromQuery(req: Request, res: Response): City | undefined {
+  const result = WeatherQuery.safeParse(req.query);
+  if (!result.success) {
+    res.status(400).json({ error: 'city query param is required' });
+    return undefined;
+  }
+  const city = findCity(result.data.city);
+  if (!city) {
+    res.status(404).json({ error: 'unknown city' });
+    return undefined;
+  }
+  return city;
+}
 
 // Factory pattern, matching messagesRouter(io) — needs the poller's cached
 // snapshot and a way to trigger an on-demand poll cycle.
@@ -41,17 +60,8 @@ export function weatherRouter(
   });
 
   router.get('/', async (req, res) => {
-    const result = WeatherQuery.safeParse(req.query);
-    if (!result.success) {
-      res.status(400).json({ error: 'city query param is required' });
-      return;
-    }
-
-    const city = findCity(result.data.city);
-    if (!city) {
-      res.status(404).json({ error: 'unknown city' });
-      return;
-    }
+    const city = resolveCityFromQuery(req, res);
+    if (!city) return;
 
     const url =
       `https://api.open-meteo.com/v1/forecast` +
@@ -85,47 +95,44 @@ export function weatherRouter(
     res.json({ alerts: getAlertHistory() });
   });
 
+  // timezone=auto (used by fetchDailyBlock) so Open-Meteo buckets each day
+  // by the city's own local date, not UTC — otherwise "today" could already
+  // show tomorrow's data for cities east of Greenwich.
   router.get('/forecast', async (req, res) => {
-    const result = WeatherQuery.safeParse(req.query);
-    if (!result.success) {
-      res.status(400).json({ error: 'city query param is required' });
-      return;
-    }
+    const city = resolveCityFromQuery(req, res);
+    if (!city) return;
 
-    const city = findCity(result.data.city);
-    if (!city) {
-      res.status(404).json({ error: 'unknown city' });
-      return;
-    }
-
-    // timezone=auto so Open-Meteo buckets each day by the city's own local
-    // date, not UTC — otherwise "today" could already show tomorrow's data
-    // for cities east of Greenwich.
-    const url =
-      `https://api.open-meteo.com/v1/forecast` +
-      `?latitude=${city.lat}&longitude=${city.lng}` +
-      `&daily=temperature_2m_max,temperature_2m_min,weather_code` +
-      `&forecast_days=7&temperature_unit=celsius&timezone=auto`;
-
-    const upstream = await fetch(url);
-    if (!upstream.ok) {
+    const days = await fetchDailyBlock(city, { pastDays: 0, forecastDays: 7 });
+    if (!days) {
       res.status(502).json({ error: 'weather service unavailable' });
       return;
     }
 
-    const data = (await upstream.json()) as {
-      daily: { time: string[]; temperature_2m_max: number[]; temperature_2m_min: number[]; weather_code: number[] };
-    };
+    res.json({
+      city: city.label,
+      cityId: city.id,
+      days: days.map((d) => ({ ...d, description: describeWeatherCode(d.weatherCode) })),
+    });
+  });
 
-    const days = data.daily.time.map((date, i) => ({
-      date,
-      tempMax: data.daily.temperature_2m_max[i],
-      tempMin: data.daily.temperature_2m_min[i],
-      weatherCode: data.daily.weather_code[i],
-      description: describeWeatherCode(data.daily.weather_code[i]),
-    }));
+  // Trend leading up to today — same daily block as /forecast, just past_days
+  // instead of forecast_days. Today is included (forecastDays: 1) so the
+  // sparkline doesn't end one day short of "now".
+  router.get('/history', async (req, res) => {
+    const city = resolveCityFromQuery(req, res);
+    if (!city) return;
 
-    res.json({ city: city.label, cityId: city.id, days });
+    const days = await fetchDailyBlock(city, { pastDays: 7, forecastDays: 1 });
+    if (!days) {
+      res.status(502).json({ error: 'weather service unavailable' });
+      return;
+    }
+
+    res.json({
+      city: city.label,
+      cityId: city.id,
+      days: days.map((d) => ({ ...d, description: describeWeatherCode(d.weatherCode) })),
+    });
   });
 
   return router;

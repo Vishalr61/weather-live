@@ -52,12 +52,19 @@ enhancement work has continuity across sessions.
   browser context that had never connected to the socket and confirmed the
   ticker showed both historical entries immediately. Reverted the
   threshold afterward.
+- **Historical trend sparkline** — `GET /api/weather/history?city=` reuses
+  the same daily-block parsing as `/forecast` (extracted into
+  `fetchDailyBlock` to remove the duplication) with `past_days=7,
+  forecast_days=1` instead of `forecast_days=7`. Rendered as a small inline
+  SVG line chart (`Sparkline.tsx`, no charting library) of the past week's
+  daily highs, between the current-conditions text and the forecast strip.
+  Verified live: 8 data points render (7 past days + today), correct
+  min/max range label, zero console errors.
 
 ## Future ideas (not yet scheduled)
 
 - Visually distinguish watched-but-not-currently-viewed cities on the
   globe (e.g. a subtle ring around their markers)
-- Historical trend sparkline per city (temp over the last N days)
 - Mobile layout pass dedicated to the globe (currently responsive but not
   touch-gesture-tuned)
 - Deployment (not attempted without explicit user go-ahead — out of scope

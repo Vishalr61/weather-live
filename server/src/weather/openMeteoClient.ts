@@ -46,3 +46,44 @@ export async function fetchBatchedConditions(cities: City[]): Promise<CityCondit
     precipitationMm: result.current.precipitation,
   }));
 }
+
+export interface DailyEntry {
+  date: string;
+  tempMax: number;
+  tempMin: number;
+  weatherCode: number;
+}
+
+interface OpenMeteoDailyBlock {
+  time: string[];
+  temperature_2m_max: number[];
+  temperature_2m_min: number[];
+  weather_code: number[];
+}
+
+// Shared by the forecast (future) and history (past) routes — both are the
+// same Open-Meteo "daily" block, just with different past_days/forecast_days
+// windows. Returns null on an upstream failure rather than throwing, so
+// callers can respond 502 the same way every other route here does.
+export async function fetchDailyBlock(
+  city: City,
+  { pastDays, forecastDays }: { pastDays: number; forecastDays: number }
+): Promise<DailyEntry[] | null> {
+  const url =
+    `https://api.open-meteo.com/v1/forecast` +
+    `?latitude=${city.lat}&longitude=${city.lng}` +
+    `&daily=temperature_2m_max,temperature_2m_min,weather_code` +
+    `&past_days=${pastDays}&forecast_days=${forecastDays}` +
+    `&temperature_unit=celsius&timezone=auto`;
+
+  const upstream = await fetch(url);
+  if (!upstream.ok) return null;
+
+  const data = (await upstream.json()) as { daily: OpenMeteoDailyBlock };
+  return data.daily.time.map((date, i) => ({
+    date,
+    tempMax: data.daily.temperature_2m_max[i],
+    tempMin: data.daily.temperature_2m_min[i],
+    weatherCode: data.daily.weather_code[i],
+  }));
+}
