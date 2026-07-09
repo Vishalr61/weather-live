@@ -113,10 +113,19 @@ enhancement work has continuity across sessions.
   Verified live: both demo logins still succeed, a wrong password and an
   unknown username both correctly return 401, and the full browser login
   flow (including the form's error-message path) still works.
+- **Rate limiting on the unauthenticated push endpoints** — `express-rate-
+  limit` (`server/src/middleware/rateLimit.ts`), 10 requests/minute per IP,
+  shared across `POST /api/messages` and `POST /api/weather/poll-now`
+  (same "unauthenticated by design" reasoning for both, and poll-now also
+  spends a real Open-Meteo request each call). Verified live: sent 13 rapid
+  requests to `/api/messages` — the first 10 returned 200, the next 3
+  returned 429 with the app's own JSON error shape, correct `RateLimit-*`
+  and `Retry-After` headers; confirmed `poll-now` was already rate-limited
+  immediately after via the shared budget, proving the two endpoints
+  really do share one limiter instance rather than each getting their own.
 
 ## In progress / queued (this batch)
 
-- [ ] Rate limiting on `POST /api/messages`
 - [ ] `AbortController` fix for the weather/forecast/history fetch race
       condition on rapid city switching
 

@@ -6,6 +6,7 @@ import type { City } from '../data/cities.js';
 import { describeWeatherCode } from '../weather/wmoDescriptions.js';
 import { getAlertHistory } from '../weather/alertHistory.js';
 import { fetchDailyBlock } from '../weather/openMeteoClient.js';
+import { pushRateLimit } from '../middleware/rateLimit.js';
 import type { PollResult, WeatherPollerHandle } from '../weather/poller.js';
 
 const WeatherQuery = z.object({
@@ -54,7 +55,9 @@ export function weatherRouter(
   // Forces one real poll cycle immediately, against live Open-Meteo data —
   // the honest replacement for the old "fake curl demo": it runs the actual
   // detection pipeline on demand rather than fabricating an event.
-  router.post('/poll-now', async (_req, res) => {
+  // Rate-limited like /api/messages — same "unauthenticated by design"
+  // reasoning, plus this one also spends a real Open-Meteo request each call.
+  router.post('/poll-now', pushRateLimit, async (_req, res) => {
     const result: PollResult = await pollNow();
     res.json({ ok: true, ...result });
   });

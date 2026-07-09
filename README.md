@@ -59,6 +59,8 @@ curl -X POST http://localhost:3001/api/messages \
 
 Both responses include a `recipients` field showing how many sockets received the message.
 
+Both `POST /api/messages` and `POST /api/weather/poll-now` share a combined rate limit of 10 requests per minute per IP — they're the two unauthenticated-by-design endpoints, so this is the abuse-prevention floor for both together. Expect a `429` if you're scripting the curl examples in a loop.
+
 To see the automated pipeline instead of a manual push, force a poll cycle against live Open-Meteo data:
 
 ```bash
@@ -166,7 +168,6 @@ weather-live/
 
 - **Refresh tokens with rotation** — 8-hour JWTs require re-login; a refresh flow keeps sessions alive without compromising revocability
 - **Persistent database** (Postgres + an ORM) — replaces the in-memory user store and message log
-- **Rate limiting** on `POST /api/messages` — the push endpoint is unauthenticated by design; without rate limiting it's trivially abusable
 - **Structured logging and observability** — OpenTelemetry traces across HTTP and Socket.IO events; currently there's no visibility into what rooms are active or how many messages are flowing
 - **Broader automated tests** — Vitest now covers the pure alert-threshold and edge-trigger logic (`server/src/weather/*.test.ts`); the poller itself (fetch + `io.emit`), supertest for HTTP routes, and Socket.IO multi-client integration tests for room targeting are still manual
 - **HttpOnly cookies** for token storage — eliminates the XSS surface of localStorage

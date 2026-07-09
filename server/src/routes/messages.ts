@@ -1,6 +1,7 @@
 import { Router } from 'express';
 import { z } from 'zod';
 import type { Server } from 'socket.io';
+import { pushRateLimit } from '../middleware/rateLimit.js';
 import type {
   ServerToClientEvents,
   ClientToServerEvents,
@@ -31,8 +32,9 @@ export function messagesRouter(io: IOServer): Router {
 
   // Intentionally unauthenticated per the brief — described as a push
   // mechanism into the system (ops/admin tooling). In production: API key
-  // or admin role.
-  router.post('/', (req, res) => {
+  // or admin role. Rate-limited per IP in the meantime since there's no
+  // auth to key abuse prevention on otherwise.
+  router.post('/', pushRateLimit, (req, res) => {
     const result = MessageBody.safeParse(req.body);
     if (!result.success) {
       res.status(400).json({ error: 'message and city are required' });
