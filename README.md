@@ -7,7 +7,7 @@
 ## Stack
 
 - **Client**: React 18, Vite, TypeScript, Three.js (globe)
-- **Server**: Node.js, Express, Socket.IO, TypeScript, Vitest
+- **Server**: Node.js, Express, Socket.IO, TypeScript, Vitest + Supertest
 - **Auth**: JWT (jsonwebtoken), in-memory user store
 - **Weather**: Open-Meteo API — no API key required, batched into one call per poll cycle for all 27 cities
 - **Validation**: Zod on all server request bodies and query params
@@ -119,14 +119,18 @@ Every triggered alert is also appended to `server/.data/alert-history.json` (cap
 weather-live/
 ├── server/
 │   ├── src/
-│   │   ├── auth/          — JWT helpers, in-memory user store
-│   │   ├── routes/        — login, weather (cities/batch/poll-now/current), messages
-│   │   ├── socket/        — JWT handshake middleware, room join/leave
+│   │   ├── auth/          — bcrypt + JWT helpers, in-memory user store
+│   │   ├── routes/        — login, weather (cities/batch/poll-now/current/forecast/
+│   │   │                    history/alerts), messages (+ supertest coverage for all)
+│   │   ├── socket/        — JWT handshake middleware, watch/unwatch room handlers
+│   │   ├── middleware/    — shared per-IP rate limiter (+ tests)
 │   │   ├── data/          — curated city list
-│   │   ├── weather/       — poller, batched Open-Meteo client, alert rules + state (+ tests),
-│   │   │                    disk-persisted alert history
+│   │   ├── weather/       — poller, batched Open-Meteo client + Zod response schemas,
+│   │   │                    alert rules + state, disk-persisted alert history (+ tests)
 │   │   ├── types.ts       — Socket.IO event maps
 │   │   └── index.ts       — Express + Socket.IO bootstrap
+│   ├── vitest.config.ts / vitest.setup.ts — sets JWT_SECRET before test imports run,
+│   │                                        so npm test doesn't depend on a real .env
 │   ├── vitest runs *.test.ts under src/; tsconfig.build.json excludes them from dist/
 │   └── .env.example
 └── client/
@@ -169,7 +173,8 @@ weather-live/
 - **Refresh tokens with rotation** — 8-hour JWTs require re-login; a refresh flow keeps sessions alive without compromising revocability
 - **Persistent database** (Postgres + an ORM) — replaces the in-memory user store and message log
 - **Structured logging and observability** — OpenTelemetry traces across HTTP and Socket.IO events; currently there's no visibility into what rooms are active or how many messages are flowing
-- **Broader automated tests** — Vitest now covers the pure alert-threshold and edge-trigger logic (`server/src/weather/*.test.ts`); the poller itself (fetch + `io.emit`), supertest for HTTP routes, and Socket.IO multi-client integration tests for room targeting are still manual
+- **Socket.IO multi-client integration tests** for room targeting — covered manually (see Testing notes) and via the `messagesRouter` supertest suite with a mocked `io`, but not with real connected sockets end to end
+- **Fetch-mocked tests for the poller and the live-Open-Meteo routes** (`/api/weather`, `/forecast`, `/history`) — same reasoning as the alert-threshold logic: mocking `fetch` is more effort than this portfolio-scale project needs when live curl checks already cover them each time they change
 - **HttpOnly cookies** for token storage — eliminates the XSS surface of localStorage
 - **User registration flow** — currently users are hardcoded; a registration endpoint with email verification is the obvious next step
 - **A real database for alert history** — currently an append-to-disk JSON file (`server/.data/alert-history.json`, capped at 100 entries), which survives restarts but isn't queryable/filterable the way a real deployment would want
@@ -185,4 +190,6 @@ Room targeting was verified manually with a three-terminal setup (server, browse
 
 Reconnect handling (Manager-level `reconnect` event + explicit room rejoin) is present in code but not testable through Vite's dev proxy, which doesn't recover from a backend that disappears mid-session. Behind a real reverse proxy (nginx, Caddy, AWS ALB) the WebSocket connection re-establishes cleanly when the backend recovers, which is what the reconnect handlers in the code are designed for.
 
-The alert-threshold logic (`evaluateAlert`, `recordAndCheckEdge`) is unit-tested — `cd server && npm test`. The globe and poller were verified end-to-end with a headless-browser session: logged in, confirmed the globe renders 27 correctly-positioned markers (spot-checked against real geography — e.g. clicking the marker next to South America on the visible hemisphere selected Cape Town, consistent with Africa sitting just east of South America across the Atlantic at this rotation), clicked a marker and confirmed the weather card and `<select>` update in sync, confirmed zero console errors and zero failed asset/socket requests, and re-ran the original curl-based subscribed/unsubscribed toast test to confirm the poller changes didn't regress the existing room-targeting mechanic.
+The alert-threshold logic (`evaluateAlert`, `recordAndCheckEdge`), the Open-Meteo response schemas, and the HTTP routes with no external network dependency are unit/integration-tested — `cd server && npm test` (39 tests as of writing). The route tests use `supertest` against the real Express routers with dependencies stubbed at their existing factory boundaries — a mocked `io` for `messagesRouter` (covering the same subscribed/unsubscribed recipients matrix above, now automated), stub `getSnapshot`/`pollNow` functions for `weatherRouter`. `POST /api/auth/login` runs against the real `bcrypt`/JWT code paths, with `JWT_SECRET` set in `vitest.setup.ts` so tests don't depend on a real `.env` file existing. Routes that call live Open-Meteo (`/api/weather`, `/forecast`, `/history`) are deliberately left out of the automated suite — same reasoning as the poller itself — and covered by live curl/browser checks instead whenever they change.
+
+The globe and poller were verified end-to-end with a headless-browser session: logged in, confirmed the globe renders 27 correctly-positioned markers (spot-checked against real geography — e.g. clicking the marker next to South America on the visible hemisphere selected Cape Town, consistent with Africa sitting just east of South America across the Atlantic at this rotation), clicked a marker and confirmed the weather card and `<select>` update in sync, confirmed zero console errors and zero failed asset/socket requests, and re-ran the original curl-based subscribed/unsubscribed toast test to confirm the poller changes didn't regress the existing room-targeting mechanic.

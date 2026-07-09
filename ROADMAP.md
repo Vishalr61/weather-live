@@ -146,10 +146,25 @@ enhancement work has continuity across sessions.
   field, a wrong-typed field, and mismatched array lengths. Verified live
   against real Open-Meteo data afterward — current weather, a forced
   poll cycle (batched schema, 27 cities), and `/forecast` all still work.
+- **Supertest coverage for HTTP routes** — added `auth.test.ts`,
+  `weather.test.ts`, `messages.test.ts`, `middleware/rateLimit.test.ts`.
+  `messagesRouter`'s tests use a duck-typed mock `io` and automate the
+  exact subscribed/unsubscribed recipients matrix the README's manual
+  testing notes already documented. `weatherRouter`'s tests stub
+  `getSnapshot`/`pollNow` at the existing factory boundary. The three
+  routes that hit live Open-Meteo stay out of the automated suite,
+  same reasoning as the poller itself. Hit a real TypeScript/NodeNext
+  quirk along the way — a dynamic `import()` of a default export
+  resolved to the wrong type in a way that made no sense from the
+  error message — and the correct fix turned out to be a `vitest.setup.ts`
+  (new `vitest.config.ts`) that sets `JWT_SECRET` before any test file's
+  imports run, letting `auth.test.ts` go back to a plain static import
+  and avoid depending on a real `.env` file existing for `npm test`.
+  39 tests total, all passing; confirmed no test files leak into `dist/`
+  and the real dev server's login still works afterward.
 
 ## In progress / queued (this batch)
 
-- [ ] Supertest coverage for HTTP routes
 - [ ] User registration flow
 
 ## Future ideas (not yet scheduled)
