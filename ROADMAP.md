@@ -196,6 +196,21 @@ enhancement work has continuity across sessions.
   after signing in, the globe renders correctly once its chunk loads, and
   the watchlist/forecast color dots resolved to the exact expected hex
   values (spot-checked via computed style) after the refactor.
+- **Socket.IO multi-client integration tests** — `socket/integration.test.ts`:
+  a real Socket.IO server on an ephemeral port with real `socket.io-client`
+  connections (not mocks), testing handshake auth (no token / invalid
+  token / valid token) and genuine room targeting — a message pushed to
+  one city reaches only the client watching it, one client watching two
+  cities gets alerts for either, and `unwatchCity` actually stops
+  delivery. Caught two sequencing bugs while writing it: a test that
+  awaited a "no message arrives" promise *before* firing the emit that
+  would have satisfied it (making the assertion pass for the wrong
+  reason — nothing had happened yet, not because the behavior was
+  correct), and a dead `expect(...).toBeNull` missing its call
+  parentheses (a no-op, not an assertion). Fixed both, then ran the suite
+  3 times back to back to rule out flakiness from the real timing/async
+  socket events. 50 tests total; confirmed no leakage into `dist/` and
+  the real dev server unaffected.
 
 ## Future ideas (not yet scheduled)
 
@@ -206,7 +221,6 @@ enhancement work has continuity across sessions.
   deferred out of this batch: it touches auth, the Socket.IO handshake,
   and CORS all at once, and needs its own focused session rather than
   being bundled with smaller items
-- Socket.IO multi-client integration tests for room targeting
 - Structured logging / observability (OpenTelemetry)
 - Deployment (not attempted without explicit user go-ahead — out of scope
   until asked)
