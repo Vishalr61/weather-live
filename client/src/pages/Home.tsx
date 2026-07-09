@@ -1,4 +1,4 @@
-import { useEffect, useRef, useState } from 'react';
+import { lazy, Suspense, useEffect, useRef, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext.tsx';
 import { useSocket } from '../hooks/useSocket.ts';
@@ -11,7 +11,6 @@ import { useTheme } from '../hooks/useTheme.ts';
 import { fetchCities, fetchForecast, fetchHistory, fetchWeather } from '../api/weather.ts';
 import { ToastContainer } from '../components/ToastContainer.tsx';
 import { ConnectionStatus } from '../components/ConnectionStatus.tsx';
-import { Globe } from '../components/Globe.tsx';
 import type { FlyToRequest } from '../components/Globe.tsx';
 import { AlertTicker } from '../components/AlertTicker.tsx';
 import { WeatherParticles } from '../components/WeatherParticles.tsx';
@@ -23,6 +22,11 @@ import { ThemeToggle } from '../components/ThemeToggle.tsx';
 import { Watchlist } from '../components/Watchlist.tsx';
 import type { City, ForecastDay, WeatherResponse } from '../types.ts';
 import '../styles/home.css';
+
+// Lazy-loaded: Three.js (renderer, scene graph, OrbitControls) is the bulk
+// of this app's JS weight, and the login/register pages never touch it —
+// splitting it into its own chunk keeps those pages' initial load light.
+const Globe = lazy(() => import('../components/Globe.tsx').then((m) => ({ default: m.Globe })));
 
 function isAbortError(err: unknown): boolean {
   return err instanceof DOMException && err.name === 'AbortError';
@@ -140,15 +144,17 @@ export function Home() {
       </header>
       <main className="home-main">
         <section className="globe-panel">
-          <Globe
-            cities={cities}
-            snapshot={snapshot}
-            selectedCityId={currentCityId}
-            onSelectCity={(id) => { void selectCity(id); }}
-            lastAlert={lastAlert}
-            flyTo={flyTo}
-            watchedCityIds={watchlist}
-          />
+          <Suspense fallback={<div className="globe-canvas globe-canvas--loading">Loading globe…</div>}>
+            <Globe
+              cities={cities}
+              snapshot={snapshot}
+              selectedCityId={currentCityId}
+              onSelectCity={(id) => { void selectCity(id); }}
+              lastAlert={lastAlert}
+              flyTo={flyTo}
+              watchedCityIds={watchlist}
+            />
+          </Suspense>
           <p className="globe-hint">Drag to rotate. Click a city marker to select it.</p>
           <AlertTicker alerts={recentAlerts} />
         </section>

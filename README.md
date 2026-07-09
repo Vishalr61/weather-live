@@ -167,6 +167,7 @@ weather-live/
 - **In-memory alert-severity tracking** — resets on restart, same trade-off as the existing in-memory user store; a city that was mid-alert before a restart won't re-fire until conditions clear and recur.
 - **Canvas2D particles, not a second Three.js scene** — the weather-card's rain/snow effect is plain canvas, keeping WebGL scoped to the globe only.
 - **Committed textures over a fetch script** — ~1.5MB of Earth textures are committed directly to `client/public/`, consistent with the "no Docker, two npm commands" zero-setup philosophy above.
+- **`Globe` is lazy-loaded, not the whole app** — Three.js is the bulk of this app's JS weight, but it's confined to one component; `weatherVisuals.ts`'s color helpers return plain hex strings rather than `THREE.Color` instances specifically so the components that render eagerly on the Home page (`Watchlist`, `ForecastStrip`) don't drag `three` into the main bundle. The result: `/login` and `/register` load a ~227KB bundle instead of ~775KB, and Three.js only downloads once a user is actually authenticated and viewing the globe.
 
 ## What I'd add for production
 

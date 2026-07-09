@@ -190,7 +190,7 @@ export function createGlobe(container: HTMLDivElement): GlobeHandle {
       if (!marker) continue;
       let color = markerColorCache.get(`${cityData.weatherCode}`);
       if (!color) {
-        color = weatherCodeToColor(cityData.weatherCode);
+        color = new Color(weatherCodeToColor(cityData.weatherCode));
         markerColorCache.set(`${cityData.weatherCode}`, color);
       }
       marker.baseColor = color;

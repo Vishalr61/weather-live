@@ -30,7 +30,7 @@ export function Watchlist({ cityIds, cities, snapshot, onSelect, onRemove }: Wat
               {snap && (
                 <span
                   className="watchlist-item-dot"
-                  style={{ background: `#${weatherCodeToColor(snap.weatherCode).getHexString()}` }}
+                  style={{ background: weatherCodeToColor(snap.weatherCode) }}
                 />
               )}
               <span className="watchlist-item-label">{city?.label ?? id}</span>

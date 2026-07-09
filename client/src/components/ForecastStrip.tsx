@@ -22,7 +22,7 @@ export function ForecastStrip({ days }: ForecastStripProps) {
           <span className="forecast-day-label">{dayLabel(day.date, i)}</span>
           <span
             className="forecast-day-dot"
-            style={{ background: `#${weatherCodeToColor(day.weatherCode).getHexString()}` }}
+            style={{ background: weatherCodeToColor(day.weatherCode) }}
           />
           <span className="forecast-day-temps">
             <span className="forecast-day-max">{Math.round(day.tempMax)}°</span>

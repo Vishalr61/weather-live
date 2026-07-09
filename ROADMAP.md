@@ -177,6 +177,25 @@ enhancement work has continuity across sessions.
   registration rate limit myself via earlier curl testing mid-session —
   restarted the dev server for a clean slate rather than waiting out the
   10-minute window, which incidentally re-confirmed the limiter works.
+- **Code-split the Three.js globe** — every build this whole session
+  warned about a >500kB chunk; fixed it for real. Lazy-loading just the
+  `Globe` component (`React.lazy` + `Suspense`) first only trimmed ~25KB
+  — barely moved the needle — because `weatherVisuals.ts` imported
+  `THREE.Color` and was also imported eagerly by `Watchlist`/
+  `ForecastStrip` (rendered directly on the Home page), so `three` was
+  still reachable from the main bundle's eager import graph regardless of
+  the Suspense boundary. Fixed by having `weatherCodeToColor` return a
+  plain hex string instead of a `Color` instance — `globeScene.ts` (only
+  reachable through the lazy chunk) constructs a real `Color` locally
+  from that string when it needs one. Result: the main bundle dropped
+  from ~775KB to ~227KB; `/login` and `/register` no longer pay for
+  Three.js at all. The `Globe` chunk itself is still >500KB (that's
+  inherent to the library), so the build warning doesn't disappear, but
+  it's no longer on the critical path for pages that don't need it.
+  Verified live: login loads fine, the Suspense fallback shows briefly
+  after signing in, the globe renders correctly once its chunk loads, and
+  the watchlist/forecast color dots resolved to the exact expected hex
+  values (spot-checked via computed style) after the refactor.
 
 ## Future ideas (not yet scheduled)
 

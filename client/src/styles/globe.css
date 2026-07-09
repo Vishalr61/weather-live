@@ -19,6 +19,15 @@
   cursor: grabbing;
 }
 
+.globe-canvas--loading {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: var(--muted);
+  font-size: 0.9rem;
+  cursor: default;
+}
+
 .globe-canvas canvas {
   display: block;
   width: 100% !important;
