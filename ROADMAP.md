@@ -104,9 +104,33 @@ enhancement work has continuity across sessions.
   independently verified — Playwright's mouse API only drives one pointer,
   so this relies on OrbitControls' built-in multi-touch handling rather
   than a from-scratch verification.
+- **Bcrypt password hashing** — the two demo users' passwords are now
+  bcrypt hashes (precomputed once, not rehashed at every server boot),
+  verified via `bcrypt.compare` in the login route. Also closed a minor
+  timing side-channel: an unknown username now runs `bcrypt.compare`
+  against a dummy hash too, so response time can't distinguish "no such
+  user" from "wrong password" (the error message already didn't).
+  Verified live: both demo logins still succeed, a wrong password and an
+  unknown username both correctly return 401, and the full browser login
+  flow (including the form's error-message path) still works.
+
+## In progress / queued (this batch)
+
+- [ ] Rate limiting on `POST /api/messages`
+- [ ] `AbortController` fix for the weather/forecast/history fetch race
+      condition on rapid city switching
 
 ## Future ideas (not yet scheduled)
-- Mobile layout pass dedicated to the globe (currently responsive but not
-  touch-gesture-tuned)
+
+- Persistent database (Postgres) replacing the in-memory user store and
+  the append-to-disk alert history
+- Refresh tokens with rotation
+- HttpOnly cookies for token storage instead of localStorage
+- Zod validation of Open-Meteo responses (upstream schema currently
+  trusted implicitly)
+- User registration flow (users are hardcoded)
+- Broader automated tests — supertest for HTTP routes, Socket.IO
+  multi-client integration tests for room targeting
+- Structured logging / observability (OpenTelemetry)
 - Deployment (not attempted without explicit user go-ahead — out of scope
   until asked)

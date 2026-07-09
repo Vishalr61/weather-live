@@ -164,7 +164,6 @@ weather-live/
 
 ## What I'd add for production
 
-- **bcrypt** for password hashing — plain-text passwords are acceptable only in a demo with no real users
 - **Refresh tokens with rotation** — 8-hour JWTs require re-login; a refresh flow keeps sessions alive without compromising revocability
 - **Persistent database** (Postgres + an ORM) — replaces the in-memory user store and message log
 - **Rate limiting** on `POST /api/messages` — the push endpoint is unauthenticated by design; without rate limiting it's trivially abusable
