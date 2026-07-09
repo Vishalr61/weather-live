@@ -6,6 +6,7 @@ import type { City } from '../data/cities.js';
 import { describeWeatherCode } from '../weather/wmoDescriptions.js';
 import { getAlertHistory } from '../weather/alertHistory.js';
 import { fetchDailyBlock } from '../weather/openMeteoClient.js';
+import { CurrentConditionsSchema } from '../weather/openMeteoSchemas.js';
 import { pushRateLimit } from '../middleware/rateLimit.js';
 import type { PollResult, WeatherPollerHandle } from '../weather/poller.js';
 
@@ -78,16 +79,20 @@ export function weatherRouter(
       return;
     }
 
-    const data = (await upstream.json()) as {
-      current: { temperature_2m: number; weather_code: number };
-    };
+    const raw: unknown = await upstream.json();
+    const result = CurrentConditionsSchema.safeParse(raw);
+    if (!result.success) {
+      res.status(502).json({ error: 'weather service unavailable' });
+      return;
+    }
 
+    const { current } = result.data;
     res.json({
       city: city.label,
       cityId: city.id,
-      temp: data.current.temperature_2m,
-      weatherCode: data.current.weather_code,
-      description: describeWeatherCode(data.current.weather_code),
+      temp: current.temperature_2m,
+      weatherCode: current.weather_code,
+      description: describeWeatherCode(current.weather_code),
     });
   });
 

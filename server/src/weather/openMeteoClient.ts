@@ -1,16 +1,7 @@
+import { z } from 'zod';
 import type { City } from '../data/cities.js';
 import type { CityConditions } from './alertRules.js';
-
-interface OpenMeteoCurrentBlock {
-  temperature_2m: number;
-  weather_code: number;
-  wind_speed_10m: number;
-  precipitation: number;
-}
-
-interface OpenMeteoLocationResult {
-  current: OpenMeteoCurrentBlock;
-}
+import { BatchedCurrentConditionsSchema, DailyBlockSchema } from './openMeteoSchemas.js';
 
 // Open-Meteo accepts comma-separated latitude/longitude lists and returns
 // results in the same order as the input — one HTTP call covers all cities
@@ -29,14 +20,16 @@ export async function fetchBatchedConditions(cities: City[]): Promise<CityCondit
     throw new Error(`Open-Meteo request failed: ${upstream.status}`);
   }
 
-  const data = (await upstream.json()) as OpenMeteoLocationResult | OpenMeteoLocationResult[];
-  const results = Array.isArray(data) ? data : [data];
+  const raw: unknown = await upstream.json();
+  const rawResults = Array.isArray(raw) ? raw : [raw];
 
-  if (results.length !== cities.length) {
+  if (rawResults.length !== cities.length) {
     throw new Error(
-      `Open-Meteo returned ${results.length} results for ${cities.length} cities — cannot zip by index`
+      `Open-Meteo returned ${rawResults.length} results for ${cities.length} cities — cannot zip by index`
     );
   }
+
+  const results = z.array(BatchedCurrentConditionsSchema).parse(rawResults);
 
   return results.map((result, i) => ({
     cityId: cities[i].id,
@@ -54,17 +47,11 @@ export interface DailyEntry {
   weatherCode: number;
 }
 
-interface OpenMeteoDailyBlock {
-  time: string[];
-  temperature_2m_max: number[];
-  temperature_2m_min: number[];
-  weather_code: number[];
-}
-
 // Shared by the forecast (future) and history (past) routes — both are the
 // same Open-Meteo "daily" block, just with different past_days/forecast_days
-// windows. Returns null on an upstream failure rather than throwing, so
-// callers can respond 502 the same way every other route here does.
+// windows. Returns null on an upstream failure OR an unexpected response
+// shape, rather than throwing, so callers can respond 502 the same way
+// every other route here does either way.
 export async function fetchDailyBlock(
   city: City,
   { pastDays, forecastDays }: { pastDays: number; forecastDays: number }
@@ -79,11 +66,15 @@ export async function fetchDailyBlock(
   const upstream = await fetch(url);
   if (!upstream.ok) return null;
 
-  const data = (await upstream.json()) as { daily: OpenMeteoDailyBlock };
-  return data.daily.time.map((date, i) => ({
+  const raw: unknown = await upstream.json();
+  const result = DailyBlockSchema.safeParse(raw);
+  if (!result.success) return null;
+
+  const { daily } = result.data;
+  return daily.time.map((date, i) => ({
     date,
-    tempMax: data.daily.temperature_2m_max[i],
-    tempMin: data.daily.temperature_2m_min[i],
-    weatherCode: data.daily.weather_code[i],
+    tempMax: daily.temperature_2m_max[i],
+    tempMin: daily.temperature_2m_min[i],
+    weatherCode: daily.weather_code[i],
   }));
 }

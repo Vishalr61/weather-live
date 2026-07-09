@@ -171,7 +171,6 @@ weather-live/
 - **Structured logging and observability** — OpenTelemetry traces across HTTP and Socket.IO events; currently there's no visibility into what rooms are active or how many messages are flowing
 - **Broader automated tests** — Vitest now covers the pure alert-threshold and edge-trigger logic (`server/src/weather/*.test.ts`); the poller itself (fetch + `io.emit`), supertest for HTTP routes, and Socket.IO multi-client integration tests for room targeting are still manual
 - **HttpOnly cookies** for token storage — eliminates the XSS surface of localStorage
-- **Zod validation of Open-Meteo responses** — the upstream schema is trusted implicitly; a schema change would produce a silent runtime error rather than a clear failure
 - **User registration flow** — currently users are hardcoded; a registration endpoint with email verification is the obvious next step
 - **A real database for alert history** — currently an append-to-disk JSON file (`server/.data/alert-history.json`, capped at 100 entries), which survives restarts but isn't queryable/filterable the way a real deployment would want
 

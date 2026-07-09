@@ -135,18 +135,33 @@ enhancement work has continuity across sessions.
   later, and confirmed the display still showed Tokyo a full 2.2s later
   when Melbourne's stale response landed — without the fix it would have
   silently overwritten Tokyo's data.
+- **Zod validation of Open-Meteo responses** — `openMeteoSchemas.ts` adds
+  schemas for the current-conditions, batched-current-conditions, and
+  daily-block response shapes (the daily one also `.refine()`s that all
+  four parallel arrays share the same length as `time`, which plain field-
+  level validation wouldn't catch). Each of the three call sites
+  (`fetchBatchedConditions`, `fetchDailyBlock`, the inline `/api/weather`
+  route) now validates before touching the response instead of trusting
+  the shape implicitly. 9 new unit tests cover valid shapes, a renamed
+  field, a wrong-typed field, and mismatched array lengths. Verified live
+  against real Open-Meteo data afterward — current weather, a forced
+  poll cycle (batched schema, 27 cities), and `/forecast` all still work.
+
+## In progress / queued (this batch)
+
+- [ ] Supertest coverage for HTTP routes
+- [ ] User registration flow
 
 ## Future ideas (not yet scheduled)
 
 - Persistent database (Postgres) replacing the in-memory user store and
   the append-to-disk alert history
 - Refresh tokens with rotation
-- HttpOnly cookies for token storage instead of localStorage
-- Zod validation of Open-Meteo responses (upstream schema currently
-  trusted implicitly)
-- User registration flow (users are hardcoded)
-- Broader automated tests — supertest for HTTP routes, Socket.IO
-  multi-client integration tests for room targeting
+- HttpOnly cookies for token storage instead of localStorage — deliberately
+  deferred out of this batch: it touches auth, the Socket.IO handshake,
+  and CORS all at once, and needs its own focused session rather than
+  being bundled with smaller items
+- Socket.IO multi-client integration tests for room targeting
 - Structured logging / observability (OpenTelemetry)
 - Deployment (not attempted without explicit user go-ahead — out of scope
   until asked)
