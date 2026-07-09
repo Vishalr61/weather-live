@@ -77,5 +77,48 @@ export function weatherRouter(
     });
   });
 
+  router.get('/forecast', async (req, res) => {
+    const result = WeatherQuery.safeParse(req.query);
+    if (!result.success) {
+      res.status(400).json({ error: 'city query param is required' });
+      return;
+    }
+
+    const city = findCity(result.data.city);
+    if (!city) {
+      res.status(404).json({ error: 'unknown city' });
+      return;
+    }
+
+    // timezone=auto so Open-Meteo buckets each day by the city's own local
+    // date, not UTC — otherwise "today" could already show tomorrow's data
+    // for cities east of Greenwich.
+    const url =
+      `https://api.open-meteo.com/v1/forecast` +
+      `?latitude=${city.lat}&longitude=${city.lng}` +
+      `&daily=temperature_2m_max,temperature_2m_min,weather_code` +
+      `&forecast_days=7&temperature_unit=celsius&timezone=auto`;
+
+    const upstream = await fetch(url);
+    if (!upstream.ok) {
+      res.status(502).json({ error: 'weather service unavailable' });
+      return;
+    }
+
+    const data = (await upstream.json()) as {
+      daily: { time: string[]; temperature_2m_max: number[]; temperature_2m_min: number[]; weather_code: number[] };
+    };
+
+    const days = data.daily.time.map((date, i) => ({
+      date,
+      tempMax: data.daily.temperature_2m_max[i],
+      tempMin: data.daily.temperature_2m_min[i],
+      weatherCode: data.daily.weather_code[i],
+      description: describeWeatherCode(data.daily.weather_code[i]),
+    }));
+
+    res.json({ city: city.label, cityId: city.id, days });
+  });
+
   return router;
 }

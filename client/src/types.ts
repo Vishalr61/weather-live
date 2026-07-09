@@ -61,3 +61,17 @@ export interface WeatherResponse {
   weatherCode: number;
   description: string;
 }
+
+export interface ForecastDay {
+  date: string;
+  tempMax: number;
+  tempMin: number;
+  weatherCode: number;
+  description: string;
+}
+
+export interface ForecastResponse {
+  city: string;
+  cityId: string;
+  days: ForecastDay[];
+}

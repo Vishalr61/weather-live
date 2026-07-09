@@ -5,13 +5,14 @@ import { useSocket } from '../hooks/useSocket.ts';
 import { useMessages } from '../hooks/useMessages.ts';
 import { useWeatherSnapshot } from '../hooks/useWeatherSnapshot.ts';
 import { useGlobalAlerts } from '../hooks/useGlobalAlerts.ts';
-import { fetchCities, fetchWeather } from '../api/weather.ts';
+import { fetchCities, fetchForecast, fetchWeather } from '../api/weather.ts';
 import { ToastContainer } from '../components/ToastContainer.tsx';
 import { ConnectionStatus } from '../components/ConnectionStatus.tsx';
 import { Globe } from '../components/Globe.tsx';
 import { AlertTicker } from '../components/AlertTicker.tsx';
 import { WeatherParticles } from '../components/WeatherParticles.tsx';
-import type { City, WeatherResponse } from '../types.ts';
+import { ForecastStrip } from '../components/ForecastStrip.tsx';
+import type { City, ForecastDay, WeatherResponse } from '../types.ts';
 import '../styles/home.css';
 
 export function Home() {
@@ -27,6 +28,7 @@ export function Home() {
   const [weather, setWeather] = useState<WeatherResponse | null>(null);
   const [weatherError, setWeatherError] = useState<string | null>(null);
   const [loading, setLoading] = useState(false);
+  const [forecast, setForecast] = useState<ForecastDay[]>([]);
 
   useEffect(() => {
     fetchCities()
@@ -69,6 +71,7 @@ export function Home() {
     setCurrentCityId(cityId);
     setWeather(null);
     setWeatherError(null);
+    setForecast([]);
     setLoading(true);
     try {
       const data = await fetchWeather(cityId);
@@ -77,6 +80,16 @@ export function Home() {
       setWeatherError('Could not load weather. Please try again.');
     } finally {
       setLoading(false);
+    }
+
+    // Supplementary to the current-conditions card — a failure here shouldn't
+    // block or error out the primary weather display, so it's fetched and
+    // handled independently.
+    try {
+      const data = await fetchForecast(cityId);
+      setForecast(data.days);
+    } catch {
+      setForecast([]);
     }
   };
 
@@ -129,6 +142,7 @@ export function Home() {
                 <h2>{weather.city}</h2>
                 <p className="weather-temp">{weather.temp}°C</p>
                 <p className="weather-desc">{weather.description}</p>
+                <ForecastStrip days={forecast} />
               </div>
             </div>
           )}

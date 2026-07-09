@@ -9,10 +9,12 @@ enhancement work has continuity across sessions.
   severe-weather poller (batched Open-Meteo, edge-triggered alerts), room-
   targeted + global broadcast channels, alert ticker, weather-driven canvas
   particles. See README's "Live Global Weather Pulse" section.
+- **7-day forecast strip** — `GET /api/weather/forecast?city=` (Open-Meteo
+  `daily=` params, `timezone=auto` so each city buckets by its own local
+  date), rendered as a horizontal strip under the current-conditions card.
 
 ## In progress / queued (this batch)
 
-- [ ] 7-day forecast strip in the detail panel (Open-Meteo `daily=` params)
 - [ ] Searchable city list + animated camera fly-to on the globe
 - [ ] Procedural ambient soundscape (Web Audio API) driven by current
       condition, gated behind an explicit mute/unmute toggle (autoplay policy)

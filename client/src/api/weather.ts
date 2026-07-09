@@ -1,4 +1,4 @@
-import type { City, WeatherResponse, WeatherSnapshotPayload } from '../types.ts';
+import type { City, ForecastResponse, WeatherResponse, WeatherSnapshotPayload } from '../types.ts';
 
 export async function fetchCities(): Promise<City[]> {
   const res = await fetch('/api/weather/cities');
@@ -16,4 +16,10 @@ export async function fetchWeather(cityId: string): Promise<WeatherResponse> {
   const res = await fetch(`/api/weather?city=${encodeURIComponent(cityId)}`);
   if (!res.ok) throw new Error('Failed to load weather');
   return res.json() as Promise<WeatherResponse>;
+}
+
+export async function fetchForecast(cityId: string): Promise<ForecastResponse> {
+  const res = await fetch(`/api/weather/forecast?city=${encodeURIComponent(cityId)}`);
+  if (!res.ok) throw new Error('Failed to load forecast');
+  return res.json() as Promise<ForecastResponse>;
 }

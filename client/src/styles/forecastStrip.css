@@ -1,0 +1,47 @@
+.forecast-strip {
+  display: flex;
+  gap: 4px;
+  overflow-x: auto;
+  margin-top: 16px;
+  padding-top: 16px;
+  border-top: 1px solid var(--border);
+}
+
+.forecast-day {
+  flex: 1 0 0;
+  min-width: 40px;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 4px;
+  padding: 4px 2px;
+}
+
+.forecast-day-label {
+  font-size: 0.7rem;
+  font-weight: 600;
+  color: var(--muted);
+  text-transform: uppercase;
+}
+
+.forecast-day-dot {
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+}
+
+.forecast-day-temps {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  font-size: 0.75rem;
+}
+
+.forecast-day-max {
+  color: var(--text);
+  font-weight: 600;
+}
+
+.forecast-day-min {
+  color: var(--muted);
+}
