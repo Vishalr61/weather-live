@@ -4,6 +4,7 @@ import { fetchBatchedConditions } from './openMeteoClient.js';
 import { evaluateAlert } from './alertRules.js';
 import { recordAndCheckEdge } from './alertState.js';
 import { describeWeatherCode } from './wmoDescriptions.js';
+import { appendAlert, loadAlertHistory } from './alertHistory.js';
 import type {
   ServerToClientEvents,
   ClientToServerEvents,
@@ -33,6 +34,8 @@ export interface WeatherPollerHandle {
 }
 
 export function startWeatherPoller(io: IOServer, intervalMs: number): WeatherPollerHandle {
+  loadAlertHistory();
+
   let latestSnapshot: WeatherSnapshotPayload | null = null;
   let inFlight: Promise<PollResult> | null = null;
 
@@ -80,6 +83,8 @@ export function startWeatherPoller(io: IOServer, intervalMs: number): WeatherPol
           city: city.label,
           timestamp,
         });
+
+        appendAlert(triggeredAlerts[triggeredAlerts.length - 1]);
       }
     }
 

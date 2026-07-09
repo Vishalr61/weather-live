@@ -109,6 +109,8 @@ sequenceDiagram
 
 A third event, `weatherSnapshot`, broadcasts every poll cycle (not just on alerts) so the globe's markers stay colored by current condition for every connected client.
 
+Every triggered alert is also appended to `server/.data/alert-history.json` (capped at 100 entries) before it's broadcast, and served back via `GET /api/weather/alerts/history`. A freshly-loaded client — one that was never connected when an alert fired — hydrates its alert ticker from this endpoint on mount, deduplicating against anything that arrives live afterward by `cityId` + `timestamp`.
+
 ## Project structure
 
 ```
@@ -119,7 +121,8 @@ weather-live/
 │   │   ├── routes/        — login, weather (cities/batch/poll-now/current), messages
 │   │   ├── socket/        — JWT handshake middleware, room join/leave
 │   │   ├── data/          — curated city list
-│   │   ├── weather/       — poller, batched Open-Meteo client, alert rules + state (+ tests)
+│   │   ├── weather/       — poller, batched Open-Meteo client, alert rules + state (+ tests),
+│   │   │                    disk-persisted alert history
 │   │   ├── types.ts       — Socket.IO event maps
 │   │   └── index.ts       — Express + Socket.IO bootstrap
 │   ├── vitest runs *.test.ts under src/; tsconfig.build.json excludes them from dist/
@@ -166,7 +169,7 @@ weather-live/
 - **AbortController on weather fetches** — rapid city switching can trigger concurrent requests; the last response to arrive wins rather than the last request sent
 - **Zod validation of Open-Meteo responses** — the upstream schema is trusted implicitly; a schema change would produce a silent runtime error rather than a clear failure
 - **User registration flow** — currently users are hardcoded; a registration endpoint with email verification is the obvious next step
-- **Persisted alert history** — `recentAlerts` lives only in each browser tab's memory; a real deployment would want a queryable alert log
+- **A real database for alert history** — currently an append-to-disk JSON file (`server/.data/alert-history.json`, capped at 100 entries), which survives restarts but isn't queryable/filterable the way a real deployment would want
 
 ## Testing notes
 

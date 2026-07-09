@@ -6,6 +6,8 @@
   width: 100%;
   max-width: 640px;
   margin: 12px auto 0;
+  max-height: 280px;
+  overflow-y: auto;
 }
 
 .alert-ticker--empty {

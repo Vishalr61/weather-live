@@ -2,6 +2,7 @@ import { Router } from 'express';
 import { z } from 'zod';
 import { cities, findCity } from '../data/cities.js';
 import { describeWeatherCode } from '../weather/wmoDescriptions.js';
+import { getAlertHistory } from '../weather/alertHistory.js';
 import type { PollResult, WeatherPollerHandle } from '../weather/poller.js';
 
 const WeatherQuery = z.object({
@@ -75,6 +76,13 @@ export function weatherRouter(
       weatherCode: data.current.weather_code,
       description: describeWeatherCode(data.current.weather_code),
     });
+  });
+
+  // Alerts persisted to disk (server/.data/alert-history.json) — survives a
+  // server restart, unlike the alert-state tracker or the connected-client
+  // list, so a freshly-loaded client can see what fired before it connected.
+  router.get('/alerts/history', (_req, res) => {
+    res.json({ alerts: getAlertHistory() });
   });
 
   router.get('/forecast', async (req, res) => {

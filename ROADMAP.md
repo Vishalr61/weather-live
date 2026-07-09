@@ -40,6 +40,18 @@ enhancement work has continuity across sessions.
   toasts while Tokyo is the active view (`recipients: 1`), and after
   removing Melbourne from the watchlist the same push returns
   `recipients: 0` with no toast.
+- **Persisted alert history** — `server/src/weather/alertHistory.ts` appends
+  every triggered alert to `server/.data/alert-history.json` (capped at
+  100), loaded back on server startup. New `GET /api/weather/alerts/history`
+  endpoint; `useGlobalAlerts` seeds the ticker from it on mount and
+  deduplicates against live socket events by `cityId`+`timestamp` (the
+  poller persists before broadcasting, so the two can overlap). Verified
+  live: temporarily lowered the heat-severe threshold, confirmed a real
+  Dubai alert (38°C) got persisted, restarted the server process, confirmed
+  the entry survived the restart, then loaded the app in a brand-new
+  browser context that had never connected to the socket and confirmed the
+  ticker showed both historical entries immediately. Reverted the
+  threshold afterward.
 
 ## Future ideas (not yet scheduled)
 
