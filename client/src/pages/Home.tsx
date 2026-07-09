@@ -6,6 +6,7 @@ import { useMessages } from '../hooks/useMessages.ts';
 import { useWeatherSnapshot } from '../hooks/useWeatherSnapshot.ts';
 import { useGlobalAlerts } from '../hooks/useGlobalAlerts.ts';
 import { useSoundscape } from '../hooks/useSoundscape.ts';
+import { useWatchlist } from '../hooks/useWatchlist.ts';
 import { fetchCities, fetchForecast, fetchWeather } from '../api/weather.ts';
 import { ToastContainer } from '../components/ToastContainer.tsx';
 import { ConnectionStatus } from '../components/ConnectionStatus.tsx';
@@ -16,6 +17,7 @@ import { WeatherParticles } from '../components/WeatherParticles.tsx';
 import { ForecastStrip } from '../components/ForecastStrip.tsx';
 import { CitySearch } from '../components/CitySearch.tsx';
 import { SoundToggle } from '../components/SoundToggle.tsx';
+import { Watchlist } from '../components/Watchlist.tsx';
 import type { City, ForecastDay, WeatherResponse } from '../types.ts';
 import '../styles/home.css';
 
@@ -26,6 +28,7 @@ export function Home() {
   const { toasts, dismiss } = useMessages(socket);
   const { snapshot } = useWeatherSnapshot(socket);
   const { lastAlert, recentAlerts } = useGlobalAlerts(socket);
+  const { watchlist, addCity, removeCity } = useWatchlist(socket);
 
   const [cities, setCities] = useState<City[]>([]);
   const [currentCityId, setCurrentCityId] = useState('');
@@ -42,39 +45,14 @@ export function Home() {
       .catch(() => { /* server unreachable — city list stays empty */ });
   }, []);
 
-  // Join/leave the socket room whenever the selected city or socket changes.
-  // Handles the case where the socket connects after a city is already selected.
-  useEffect(() => {
-    if (!socket || !currentCityId) return;
-    socket.emit('joinCity', currentCityId);
-    return () => {
-      // Cleanup runs with the previous closure: when currentCityId changes from
-      // 'melbourne' to 'sydney', this emits leaveCity('melbourne') before the
-      // next effect emits joinCity('sydney'). React's effect lifecycle guarantees
-      // we never end up subscribed to two city rooms at once.
-      socket.emit('leaveCity', currentCityId);
-    };
-  }, [socket, currentCityId]);
-
-  // socket.io-client reuses the same Socket instance across reconnects, so
-  // the room-join useEffect above doesn't re-fire on disconnect/reconnect
-  // cycles. This effect explicitly re-emits joinCity when the underlying
-  // connection comes back, so the user's room subscription survives a
-  // backend bounce.
-  useEffect(() => {
-    if (!socket || !currentCityId) return;
-    const rejoin = () => socket.emit('joinCity', currentCityId);
-    socket.on('connect', rejoin);
-    socket.io.on('reconnect', rejoin);
-    return () => {
-      socket.off('connect', rejoin);
-      socket.io.off('reconnect', rejoin);
-    };
-  }, [socket, currentCityId]);
-
+  // Viewing a city also adds it to the watchlist — the room join/rejoin
+  // logic for alerts now lives entirely in useWatchlist, keyed off that
+  // list rather than a single "current city." Switching which city is
+  // being viewed no longer drops alerts for previously-viewed cities.
   const selectCity = async (cityId: string) => {
     if (!cityId) return;
     setCurrentCityId(cityId);
+    addCity(cityId);
     setWeather(null);
     setWeatherError(null);
     setForecast([]);
@@ -153,6 +131,17 @@ export function Home() {
                 <option key={c.id} value={c.id}>{c.label}</option>
               ))}
             </select>
+          </div>
+
+          <div className="watchlist-section">
+            <h3 className="watchlist-heading">Watchlist</h3>
+            <Watchlist
+              cityIds={watchlist}
+              cities={cities}
+              snapshot={snapshot}
+              onSelect={selectCityAndFly}
+              onRemove={removeCity}
+            />
           </div>
 
           {loading && <p className="weather-loading">Loading weather...</p>}

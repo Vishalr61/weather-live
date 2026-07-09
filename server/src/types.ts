@@ -39,8 +39,8 @@ export interface ServerToClientEvents {
 }
 
 export interface ClientToServerEvents {
-  joinCity: (city: string) => void;
-  leaveCity: (city: string) => void;
+  watchCity: (city: string) => void;
+  unwatchCity: (city: string) => void;
 }
 
 export interface InterServerEvents {}

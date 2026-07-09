@@ -97,6 +97,17 @@
   margin-bottom: 28px;
 }
 
+.watchlist-section {
+  margin-bottom: 28px;
+}
+
+.watchlist-heading {
+  font-size: 0.875rem;
+  font-weight: 500;
+  color: var(--text);
+  margin-bottom: 8px;
+}
+
 .city-selector label {
   font-size: 0.875rem;
   font-weight: 500;

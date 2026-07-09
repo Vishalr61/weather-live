@@ -29,12 +29,22 @@ enhancement work has continuity across sessions.
   off and switching cities with sound enabled both work with zero console
   errors (headless Chromium can build and run the audio graph even though
   there's no real output device to hear it through).
+- **Multi-city watchlist** — replaced the single-exclusive-room model
+  (`joinCity`/`leaveCity`, which force-left every other room on switch)
+  with `watchCity`/`unwatchCity`: a socket can watch any number of rooms at
+  once. `useWatchlist` persists the list to `localStorage`, diffs on
+  add/remove, and fully re-joins on connect/reconnect. Viewing a city adds
+  it to the watchlist; removing a city from the watchlist stops its alerts
+  without affecting what's currently displayed. Verified live: viewing
+  Melbourne then Tokyo leaves both watched, a push to Melbourne still
+  toasts while Tokyo is the active view (`recipients: 1`), and after
+  removing Melbourne from the watchlist the same push returns
+  `recipients: 0` with no toast.
 
 ## Future ideas (not yet scheduled)
 
-- Multi-city watchlist — subscribe to several city rooms at once with an
-  aggregated feed, instead of the current single-room model
-- Persist alert history (currently in-memory per browser tab only)
+- Visually distinguish watched-but-not-currently-viewed cities on the
+  globe (e.g. a subtle ring around their markers)
 - Historical trend sparkline per city (temp over the last N days)
 - Mobile layout pass dedicated to the globe (currently responsive but not
   touch-gesture-tuned)

@@ -69,14 +69,14 @@ If nothing crosses a threshold (likely, on any given day), temporarily lower a v
 
 ## Architecture
 
-When a user selects a city, the client emits `joinCity` and the server joins that socket to a Socket.IO room keyed by the city slug (e.g. `"melbourne"`). The `POST /api/messages` endpoint targets that room directly — non-subscribers never see the event.
+Rooms are a **watchlist**, not a single "current city." When a user views a city (via the globe, search, or the `<select>` fallback), the client emits `watchCity` and the server joins that socket to a Socket.IO room keyed by the city slug (e.g. `"melbourne"`) — without leaving any rooms it already occupies. The `POST /api/messages` endpoint targets a room directly — non-subscribers never see the event.
 
 ```mermaid
 sequenceDiagram
     participant A as curl / admin
     participant B as Express
     participant C as Socket.IO room "melbourne"
-    participant D as Browser (subscribed to melbourne)
+    participant D as Browser (watching melbourne)
 
     A->>B: POST /api/messages {city:"melbourne", message:"..."}
     B->>C: io.to("melbourne").emit("message", payload)
@@ -84,9 +84,7 @@ sequenceDiagram
     Note over D: setState → Toast renders
 ```
 
-When the user switches cities, React's effect cleanup runs first — emitting `leaveCity('melbourne')` with the previous closure — before the new effect fires and emits `joinCity('sydney')`. The ordering is guaranteed by React's effect lifecycle, so the user is subscribed to exactly one city room at any point in time.
-
-A separate effect handles reconnects — see Testing Notes.
+`useWatchlist` (`client/src/hooks/useWatchlist.ts`) owns room membership: it's persisted to `localStorage`, diffed on every add/remove to emit only `watchCity`/`unwatchCity` for the actual change, and fully re-joined on the socket's `connect`/`reconnect` events so a dropped connection doesn't silently lose alert coverage for cities watched before the bounce. Removing a city from the watchlist stops its alerts but doesn't affect what's currently shown in the detail panel — viewing and watching are related (viewing adds to the watchlist) but not the same state.
 
 ### The weather poller and its two broadcast channels
 
