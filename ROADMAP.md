@@ -85,6 +85,25 @@ enhancement work has continuity across sessions.
   rings render, then did a full page reload (the exact scenario the race
   condition would hit) and confirmed all three rings still appear
   correctly, zero console errors.
+- **Mobile/touch verification + header fix** — OrbitControls already
+  handles single-finger drag-to-rotate and pinch-to-zoom by default (mouse
+  and single-touch share the same rotate code path), so there was no globe
+  interaction code to write — the actual finding was a real layout bug:
+  the header wrapped to two lines and broke its fixed height below ~480px
+  wide, because "⛅ Weather Live" plus the connection status plus three
+  header buttons don't fit on one line at phone width. Fixed with a
+  `max-width: 480px` media query that shrinks the title, hides the
+  connection-status text label (the color dot alone still conveys state),
+  and lets the header size itself with `min-height` instead of a fixed
+  `height`. Verified live on an emulated iPhone 13 viewport: no horizontal
+  overflow, header back to a single 56px row, single-pointer drag actually
+  rotates the globe (confirmed by comparing before/after screenshots —
+  an Americas-facing view rotated to show Europe/Africa/the Middle East),
+  and tap-to-select still resolves correctly alongside the drag gesture.
+  Caveat: pinch-to-zoom (genuine two-finger multi-touch) wasn't
+  independently verified — Playwright's mouse API only drives one pointer,
+  so this relies on OrbitControls' built-in multi-touch handling rather
+  than a from-scratch verification.
 
 ## Future ideas (not yet scheduled)
 - Mobile layout pass dedicated to the globe (currently responsive but not

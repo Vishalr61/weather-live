@@ -21,6 +21,27 @@
   font-size: 1.1rem;
   font-weight: 600;
   color: var(--text);
+  white-space: nowrap;
+}
+
+@media (max-width: 480px) {
+  .home-header {
+    height: auto;
+    min-height: 56px;
+    flex-wrap: wrap;
+    row-gap: 8px;
+    padding: 10px 12px;
+  }
+
+  .home-title {
+    font-size: 0.95rem;
+  }
+
+  /* The color-coded dot alone still conveys connection state; the text
+     label is the first thing to drop when space is tight. */
+  .connection-label {
+    display: none;
+  }
 }
 
 .logout-btn {
