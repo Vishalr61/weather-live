@@ -2,6 +2,7 @@ import { Router } from 'express';
 import { z } from 'zod';
 import type { Server } from 'socket.io';
 import { pushRateLimit } from '../middleware/rateLimit.js';
+import { logger } from '../logger.js';
 import type {
   ServerToClientEvents,
   ClientToServerEvents,
@@ -54,6 +55,7 @@ export function messagesRouter(io: IOServer): Router {
       timestamp: new Date().toISOString(),
     });
 
+    logger.info({ city, recipients }, 'message pushed');
     res.json({ ok: true, recipients });
   });
 

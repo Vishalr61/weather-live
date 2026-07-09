@@ -3,6 +3,7 @@ import express from 'express';
 import { createServer } from 'http';
 import { Server } from 'socket.io';
 import cors from 'cors';
+import pinoHttp from 'pino-http';
 import type {
   ServerToClientEvents,
   ClientToServerEvents,
@@ -15,10 +16,15 @@ import { messagesRouter } from './routes/messages.js';
 import { registerAuthMiddleware } from './socket/authMiddleware.js';
 import { registerRoomHandlers } from './socket/roomHandlers.js';
 import { startWeatherPoller } from './weather/poller.js';
+import { logger } from './logger.js';
 
 const app = express();
 app.use(cors({ origin: 'http://localhost:5173' }));
 app.use(express.json());
+// Logs every request (method, path, status, response time) as one
+// structured line — the "no visibility into what's flowing" gap this
+// closes doesn't need full distributed tracing to be worth having.
+app.use(pinoHttp({ logger }));
 
 const httpServer = createServer(app);
 
@@ -49,5 +55,5 @@ app.get('/health', (_req, res) => {
 
 const PORT = process.env.PORT ?? '3001';
 httpServer.listen(PORT, () => {
-  console.log(`server listening on http://localhost:${PORT}`);
+  logger.info({ port: PORT }, 'server listening');
 });

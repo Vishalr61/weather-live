@@ -5,6 +5,7 @@ import { evaluateAlert } from './alertRules.js';
 import { recordAndCheckEdge } from './alertState.js';
 import { describeWeatherCode } from './wmoDescriptions.js';
 import { appendAlert, loadAlertHistory } from './alertHistory.js';
+import { logger } from '../logger.js';
 import type {
   ServerToClientEvents,
   ClientToServerEvents,
@@ -94,6 +95,11 @@ export function startWeatherPoller(io: IOServer, intervalMs: number): WeatherPol
       io.emit('globalAlert', alert);
     }
 
+    logger.info(
+      { citiesPolled: citySnapshots.length, alertsTriggered: triggeredAlerts.length },
+      'weather poll completed'
+    );
+
     return { citySnapshots, triggeredAlerts };
   }
 
@@ -102,7 +108,7 @@ export function startWeatherPoller(io: IOServer, intervalMs: number): WeatherPol
       inFlight = runPoll()
         .catch((err: unknown) => {
           // An Open-Meteo outage should skip a cycle, not crash the server.
-          console.error('weather poll failed:', err);
+          logger.error({ err }, 'weather poll failed');
           return { citySnapshots: latestSnapshot?.cities ?? [], triggeredAlerts: [] };
         })
         .finally(() => {

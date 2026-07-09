@@ -113,6 +113,10 @@ A third event, `weatherSnapshot`, broadcasts every poll cycle (not just on alert
 
 Every triggered alert is also appended to `server/.data/alert-history.json` (capped at 100 entries) before it's broadcast, and served back via `GET /api/weather/alerts/history`. A freshly-loaded client — one that was never connected when an alert fired — hydrates its alert ticker from this endpoint on mount, deduplicating against anything that arrives live afterward by `cityId` + `timestamp`.
 
+### Logging
+
+The server logs structurally via `pino` (`server/src/logger.ts`) rather than `console.log`/`console.error` — every HTTP request (via `pino-http`), every socket connect/disconnect, every `watchCity`/`unwatchCity`, every message push (city + recipient count), and every poll cycle (cities polled, alerts triggered) is one structured line. `pino-pretty` (dev-only dependency) makes it human-readable during `npm run dev`; in production (`NODE_ENV=production`) it's raw newline-delimited JSON, which is what a real log aggregator would want. This is the "no visibility into what rooms are active or how many messages are flowing" gap closed at the logging layer — full distributed tracing across HTTP → Socket.IO → the poller would still need real OpenTelemetry spans, which is a bigger lift (see What I'd add for production).
+
 ## Project structure
 
 ```
@@ -129,6 +133,8 @@ weather-live/
 │   │   ├── weather/       — poller, batched Open-Meteo client + Zod response schemas,
 │   │   │                    alert rules + state, disk-persisted alert history (+ tests)
 │   │   ├── types.ts       — Socket.IO event maps
+│   │   ├── logger.ts      — structured pino logger (pretty-printed in dev, JSON
+│   │   │                    in production)
 │   │   └── index.ts       — Express + Socket.IO bootstrap
 │   ├── vitest.config.ts / vitest.setup.ts — sets JWT_SECRET before test imports run,
 │   │                                        so npm test doesn't depend on a real .env
@@ -174,7 +180,7 @@ weather-live/
 
 - **Refresh tokens with rotation** — 8-hour JWTs require re-login; a refresh flow keeps sessions alive without compromising revocability
 - **Persistent database** (Postgres + an ORM) — replaces the in-memory user store and message log
-- **Structured logging and observability** — OpenTelemetry traces across HTTP and Socket.IO events; currently there's no visibility into what rooms are active or how many messages are flowing
+- **Distributed tracing** (OpenTelemetry) — structured logging (below) covers "what's happening right now"; correlating a request across HTTP → Socket.IO → the poller would need real spans, which is a bigger lift
 - **Fetch-mocked tests for the poller and the live-Open-Meteo routes** (`/api/weather`, `/forecast`, `/history`) — same reasoning as the alert-threshold logic: mocking `fetch` is more effort than this portfolio-scale project needs when live curl checks already cover them each time they change
 - **HttpOnly cookies** for token storage — eliminates the XSS surface of localStorage
 - **Email verification on registration** — `POST /api/auth/register` exists now (see below) but doesn't verify email ownership, since that needs real SMTP/third-party infrastructure to actually test end to end

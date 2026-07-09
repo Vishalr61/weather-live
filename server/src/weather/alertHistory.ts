@@ -1,5 +1,6 @@
 import { existsSync, mkdirSync, readFileSync, writeFileSync } from 'node:fs';
 import { dirname, join } from 'node:path';
+import { logger } from '../logger.js';
 import type { GlobalAlertPayload } from '../types.js';
 
 // A lightweight append-to-disk log, not a database — consistent with this
@@ -18,7 +19,7 @@ export function loadAlertHistory(): GlobalAlertPayload[] {
       const raw: unknown = JSON.parse(readFileSync(HISTORY_PATH, 'utf-8'));
       history = Array.isArray(raw) ? raw : [];
     } catch (err) {
-      console.error('failed to read alert history, starting empty:', err);
+      logger.error({ err }, 'failed to read alert history, starting empty');
       history = [];
     }
   }
@@ -31,7 +32,7 @@ export function appendAlert(alert: GlobalAlertPayload): void {
     mkdirSync(dirname(HISTORY_PATH), { recursive: true });
     writeFileSync(HISTORY_PATH, JSON.stringify(history, null, 2));
   } catch (err) {
-    console.error('failed to persist alert history:', err);
+    logger.error({ err }, 'failed to persist alert history');
   }
 }
 

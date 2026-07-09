@@ -211,6 +211,20 @@ enhancement work has continuity across sessions.
   3 times back to back to rule out flakiness from the real timing/async
   socket events. 50 tests total; confirmed no leakage into `dist/` and
   the real dev server unaffected.
+- **Structured logging with pino** — replaced every `console.log`/
+  `console.error` with `logger.ts` (pino, pretty-printed in dev via
+  `pino-pretty`, raw JSON in production). `pino-http` logs every HTTP
+  request; new log points cover socket connect/disconnect, `watchCity`/
+  `unwatchCity` (per-user, per-city — the "what rooms are active"
+  gap), message pushes (city + recipient count — the "how many messages
+  are flowing" gap), and poll-cycle summaries (cities polled, alerts
+  triggered). Silenced during tests via `LOG_LEVEL=silent` in
+  `vitest.setup.ts` so it doesn't interleave with test output — noticed
+  this the first run, when the socket integration test's real
+  connect/disconnect events produced a wall of pretty-printed log lines
+  alongside the test results. Verified live: restarted the dev server
+  and confirmed startup, poll-cycle, socket-connection, and
+  request-completion logs all render correctly with real data.
 
 ## Future ideas (not yet scheduled)
 
@@ -221,6 +235,8 @@ enhancement work has continuity across sessions.
   deferred out of this batch: it touches auth, the Socket.IO handshake,
   and CORS all at once, and needs its own focused session rather than
   being bundled with smaller items
-- Structured logging / observability (OpenTelemetry)
+- Distributed tracing (OpenTelemetry) — correlating a request across
+  HTTP → Socket.IO → the poller would need real spans, on top of the
+  structured logging that now exists
 - Deployment (not attempted without explicit user go-ahead — out of scope
   until asked)
