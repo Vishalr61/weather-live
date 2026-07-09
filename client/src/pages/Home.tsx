@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext.tsx';
 import { useSocket } from '../hooks/useSocket.ts';
@@ -24,6 +24,10 @@ import { Watchlist } from '../components/Watchlist.tsx';
 import type { City, ForecastDay, WeatherResponse } from '../types.ts';
 import '../styles/home.css';
 
+function isAbortError(err: unknown): boolean {
+  return err instanceof DOMException && err.name === 'AbortError';
+}
+
 export function Home() {
   const { logout } = useAuth();
   const navigate = useNavigate();
@@ -44,10 +48,22 @@ export function Home() {
   const { enabled: soundEnabled, toggle: toggleSound } = useSoundscape(weather?.weatherCode ?? null);
   const { theme, toggleTheme } = useTheme();
 
+  // Tracks the in-flight request set for the most recently selected city, so
+  // a slower older request that resolves after a newer selection can't
+  // overwrite the display with stale data. Aborting handles the common case
+  // (the old request is still in flight); the isCurrent() checks below also
+  // cover the narrower case of an old request completing successfully in the
+  // brief window before it could be aborted.
+  const activeRequestRef = useRef<AbortController | null>(null);
+
   useEffect(() => {
     fetchCities()
       .then(setCities)
       .catch(() => { /* server unreachable — city list stays empty */ });
+  }, []);
+
+  useEffect(() => {
+    return () => activeRequestRef.current?.abort();
   }, []);
 
   // Viewing a city also adds it to the watchlist — the room join/rejoin
@@ -56,6 +72,12 @@ export function Home() {
   // being viewed no longer drops alerts for previously-viewed cities.
   const selectCity = async (cityId: string) => {
     if (!cityId) return;
+
+    activeRequestRef.current?.abort();
+    const controller = new AbortController();
+    activeRequestRef.current = controller;
+    const isCurrent = () => activeRequestRef.current === controller;
+
     setCurrentCityId(cityId);
     addCity(cityId);
     setWeather(null);
@@ -64,29 +86,31 @@ export function Home() {
     setHistory([]);
     setLoading(true);
     try {
-      const data = await fetchWeather(cityId);
-      setWeather(data);
-    } catch {
-      setWeatherError('Could not load weather. Please try again.');
+      const data = await fetchWeather(cityId, controller.signal);
+      if (isCurrent()) setWeather(data);
+    } catch (err) {
+      if (isCurrent() && !isAbortError(err)) {
+        setWeatherError('Could not load weather. Please try again.');
+      }
     } finally {
-      setLoading(false);
+      if (isCurrent()) setLoading(false);
     }
 
     // Supplementary to the current-conditions card — a failure here shouldn't
     // block or error out the primary weather display, so it's fetched and
     // handled independently.
     try {
-      const data = await fetchForecast(cityId);
-      setForecast(data.days);
+      const data = await fetchForecast(cityId, controller.signal);
+      if (isCurrent()) setForecast(data.days);
     } catch {
-      setForecast([]);
+      if (isCurrent()) setForecast([]);
     }
 
     try {
-      const data = await fetchHistory(cityId);
-      setHistory(data.days);
+      const data = await fetchHistory(cityId, controller.signal);
+      if (isCurrent()) setHistory(data.days);
     } catch {
-      setHistory([]);
+      if (isCurrent()) setHistory([]);
     }
   };
 

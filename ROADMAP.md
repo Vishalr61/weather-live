@@ -123,11 +123,18 @@ enhancement work has continuity across sessions.
   and `Retry-After` headers; confirmed `poll-now` was already rate-limited
   immediately after via the shared budget, proving the two endpoints
   really do share one limiter instance rather than each getting their own.
-
-## In progress / queued (this batch)
-
-- [ ] `AbortController` fix for the weather/forecast/history fetch race
-      condition on rapid city switching
+- **AbortController fix for the city-switch race condition** — `selectCity`
+  now creates one `AbortController` per selection, aborts the previous
+  one, and passes the signal into `fetchWeather`/`fetchForecast`/
+  `fetchHistory`. Abort alone isn't quite enough — a stale request can
+  still resolve successfully in the brief window before it's aborted — so
+  every state update is also gated on an `isCurrent()` check
+  (`activeRequestRef.current === controller`) before applying. Verified
+  live with Playwright request interception: delayed Melbourne's
+  `/api/weather` response by 2s, selected Melbourne then Tokyo 150ms
+  later, and confirmed the display still showed Tokyo a full 2.2s later
+  when Melbourne's stale response landed — without the fix it would have
+  silently overwritten Tokyo's data.
 
 ## Future ideas (not yet scheduled)
 

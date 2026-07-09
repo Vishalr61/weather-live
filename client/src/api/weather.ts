@@ -18,14 +18,14 @@ export async function fetchWeatherBatch(): Promise<WeatherSnapshotPayload> {
   return res.json() as Promise<WeatherSnapshotPayload>;
 }
 
-export async function fetchWeather(cityId: string): Promise<WeatherResponse> {
-  const res = await fetch(`/api/weather?city=${encodeURIComponent(cityId)}`);
+export async function fetchWeather(cityId: string, signal?: AbortSignal): Promise<WeatherResponse> {
+  const res = await fetch(`/api/weather?city=${encodeURIComponent(cityId)}`, { signal });
   if (!res.ok) throw new Error('Failed to load weather');
   return res.json() as Promise<WeatherResponse>;
 }
 
-export async function fetchForecast(cityId: string): Promise<ForecastResponse> {
-  const res = await fetch(`/api/weather/forecast?city=${encodeURIComponent(cityId)}`);
+export async function fetchForecast(cityId: string, signal?: AbortSignal): Promise<ForecastResponse> {
+  const res = await fetch(`/api/weather/forecast?city=${encodeURIComponent(cityId)}`, { signal });
   if (!res.ok) throw new Error('Failed to load forecast');
   return res.json() as Promise<ForecastResponse>;
 }
@@ -39,8 +39,8 @@ export async function fetchAlertHistory(): Promise<GlobalAlertPayload[]> {
 
 // Same response shape as fetchForecast — the server route reuses the same
 // daily-block parsing, just with past_days instead of forecast_days.
-export async function fetchHistory(cityId: string): Promise<ForecastResponse> {
-  const res = await fetch(`/api/weather/history?city=${encodeURIComponent(cityId)}`);
+export async function fetchHistory(cityId: string, signal?: AbortSignal): Promise<ForecastResponse> {
+  const res = await fetch(`/api/weather/history?city=${encodeURIComponent(cityId)}`, { signal });
   if (!res.ok) throw new Error('Failed to load weather history');
   return res.json() as Promise<ForecastResponse>;
 }
