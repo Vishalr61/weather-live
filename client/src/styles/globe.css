@@ -1,0 +1,39 @@
+.globe-panel {
+  background: var(--surface);
+  border-radius: var(--radius);
+  box-shadow: var(--shadow);
+  padding: 20px;
+  flex: 1 1 60%;
+  min-width: 0;
+}
+
+.globe-canvas {
+  width: 100%;
+  aspect-ratio: 1;
+  max-width: 640px;
+  margin: 0 auto;
+  cursor: grab;
+}
+
+.globe-canvas:active {
+  cursor: grabbing;
+}
+
+.globe-canvas canvas {
+  display: block;
+  width: 100% !important;
+  height: 100% !important;
+}
+
+.globe-hint {
+  text-align: center;
+  font-size: 0.75rem;
+  color: var(--muted);
+  margin-top: 8px;
+}
+
+@media (max-width: 860px) {
+  .globe-canvas {
+    max-width: 420px;
+  }
+}
