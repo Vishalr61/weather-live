@@ -10,10 +10,11 @@ import type {
   SocketData,
 } from './types.js';
 import authRouter from './routes/auth.js';
-import weatherRouter from './routes/weather.js';
+import { weatherRouter } from './routes/weather.js';
 import { messagesRouter } from './routes/messages.js';
 import { registerAuthMiddleware } from './socket/authMiddleware.js';
 import { registerRoomHandlers } from './socket/roomHandlers.js';
+import { startWeatherPoller } from './weather/poller.js';
 
 const app = express();
 app.use(cors({ origin: 'http://localhost:5173' }));
@@ -36,8 +37,10 @@ export const io = new Server<
 registerAuthMiddleware(io);
 registerRoomHandlers(io);
 
+const poller = startWeatherPoller(io, Number(process.env.WEATHER_POLL_INTERVAL_MS ?? 5 * 60 * 1000));
+
 app.use('/api/auth', authRouter);
-app.use('/api/weather', weatherRouter);
+app.use('/api/weather', weatherRouter(poller.getLatestSnapshot, poller.pollOnce));
 app.use('/api/messages', messagesRouter(io));
 
 app.get('/health', (_req, res) => {
