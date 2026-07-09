@@ -3,9 +3,14 @@ import { useNavigate } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext.tsx';
 import { useSocket } from '../hooks/useSocket.ts';
 import { useMessages } from '../hooks/useMessages.ts';
+import { useWeatherSnapshot } from '../hooks/useWeatherSnapshot.ts';
+import { useGlobalAlerts } from '../hooks/useGlobalAlerts.ts';
 import { fetchCities, fetchWeather } from '../api/weather.ts';
 import { ToastContainer } from '../components/ToastContainer.tsx';
 import { ConnectionStatus } from '../components/ConnectionStatus.tsx';
+import { Globe } from '../components/Globe.tsx';
+import { AlertTicker } from '../components/AlertTicker.tsx';
+import { WeatherParticles } from '../components/WeatherParticles.tsx';
 import type { City, WeatherResponse } from '../types.ts';
 import '../styles/home.css';
 
@@ -14,6 +19,8 @@ export function Home() {
   const navigate = useNavigate();
   const { socket, status } = useSocket();
   const { toasts, dismiss } = useMessages(socket);
+  const { snapshot } = useWeatherSnapshot(socket);
+  const { lastAlert, recentAlerts } = useGlobalAlerts(socket);
 
   const [cities, setCities] = useState<City[]>([]);
   const [currentCityId, setCurrentCityId] = useState('');
@@ -86,29 +93,46 @@ export function Home() {
         <button onClick={handleLogout} className="logout-btn">Sign out</button>
       </header>
       <main className="home-main">
-        <div className="city-selector">
-          <label htmlFor="city">Select a city</label>
-          <select
-            id="city"
-            value={currentCityId}
-            onChange={(e) => { void selectCity(e.target.value); }}
-          >
-            <option value="">— choose a city —</option>
-            {cities.map((c) => (
-              <option key={c.id} value={c.id}>{c.label}</option>
-            ))}
-          </select>
-        </div>
+        <section className="globe-panel">
+          <Globe
+            cities={cities}
+            snapshot={snapshot}
+            selectedCityId={currentCityId}
+            onSelectCity={(id) => { void selectCity(id); }}
+            lastAlert={lastAlert}
+          />
+          <p className="globe-hint">Drag to rotate. Click a city marker to select it.</p>
+          <AlertTicker alerts={recentAlerts} />
+        </section>
 
-        {loading && <p className="weather-loading">Loading weather...</p>}
-        {weatherError && <p className="weather-error">{weatherError}</p>}
-        {weather && (
-          <div className="weather-card">
-            <h2>{weather.city}</h2>
-            <p className="weather-temp">{weather.temp}°C</p>
-            <p className="weather-desc">{weather.description}</p>
+        <section className="detail-panel">
+          <div className="city-selector">
+            <label htmlFor="city">Select a city</label>
+            <select
+              id="city"
+              value={currentCityId}
+              onChange={(e) => { void selectCity(e.target.value); }}
+            >
+              <option value="">— choose a city —</option>
+              {cities.map((c) => (
+                <option key={c.id} value={c.id}>{c.label}</option>
+              ))}
+            </select>
           </div>
-        )}
+
+          {loading && <p className="weather-loading">Loading weather...</p>}
+          {weatherError && <p className="weather-error">{weatherError}</p>}
+          {weather && (
+            <div className="weather-card">
+              <WeatherParticles weatherCode={weather.weatherCode} />
+              <div className="weather-card-content">
+                <h2>{weather.city}</h2>
+                <p className="weather-temp">{weather.temp}°C</p>
+                <p className="weather-desc">{weather.description}</p>
+              </div>
+            </div>
+          )}
+        </section>
       </main>
       <ToastContainer toasts={toasts} dismiss={dismiss} />
     </div>
