@@ -5,6 +5,7 @@ import { useSocket } from '../hooks/useSocket.ts';
 import { useMessages } from '../hooks/useMessages.ts';
 import { useWeatherSnapshot } from '../hooks/useWeatherSnapshot.ts';
 import { useGlobalAlerts } from '../hooks/useGlobalAlerts.ts';
+import { useSoundscape } from '../hooks/useSoundscape.ts';
 import { fetchCities, fetchForecast, fetchWeather } from '../api/weather.ts';
 import { ToastContainer } from '../components/ToastContainer.tsx';
 import { ConnectionStatus } from '../components/ConnectionStatus.tsx';
@@ -14,6 +15,7 @@ import { AlertTicker } from '../components/AlertTicker.tsx';
 import { WeatherParticles } from '../components/WeatherParticles.tsx';
 import { ForecastStrip } from '../components/ForecastStrip.tsx';
 import { CitySearch } from '../components/CitySearch.tsx';
+import { SoundToggle } from '../components/SoundToggle.tsx';
 import type { City, ForecastDay, WeatherResponse } from '../types.ts';
 import '../styles/home.css';
 
@@ -32,6 +34,7 @@ export function Home() {
   const [loading, setLoading] = useState(false);
   const [forecast, setForecast] = useState<ForecastDay[]>([]);
   const [flyTo, setFlyTo] = useState<FlyToRequest | null>(null);
+  const { enabled: soundEnabled, toggle: toggleSound } = useSoundscape(weather?.weatherCode ?? null);
 
   useEffect(() => {
     fetchCities()
@@ -114,7 +117,10 @@ export function Home() {
       <header className="home-header">
         <span className="home-title">⛅ Weather Live</span>
         <ConnectionStatus status={status} />
-        <button onClick={handleLogout} className="logout-btn">Sign out</button>
+        <div className="home-header-actions">
+          <SoundToggle enabled={soundEnabled} onToggle={toggleSound} />
+          <button onClick={handleLogout} className="logout-btn">Sign out</button>
+        </div>
       </header>
       <main className="home-main">
         <section className="globe-panel">

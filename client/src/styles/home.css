@@ -40,6 +40,28 @@
   color: var(--text);
 }
 
+.home-header-actions {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.sound-toggle {
+  background: none;
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  width: 32px;
+  height: 32px;
+  font-size: 0.95rem;
+  line-height: 1;
+  cursor: pointer;
+  transition: border-color 0.15s;
+}
+
+.sound-toggle:hover {
+  border-color: var(--text);
+}
+
 .home-main {
   flex: 1;
   max-width: 1200px;

@@ -20,11 +20,15 @@ enhancement work has continuity across sessions.
   direct marker click skips the flight since the user is already looking
   at it. Verified live: flying from an Americas-facing view to Tokyo
   correctly rotates across the whole globe and centers the right marker.
-
-## In progress / queued (this batch)
-
-- [ ] Procedural ambient soundscape (Web Audio API) driven by current
-      condition, gated behind an explicit mute/unmute toggle (autoplay policy)
+- **Procedural ambient soundscape** — `audio/soundscapeEngine.ts`: a shared
+  white-noise buffer routed through per-condition filters (rain hiss, snow
+  hush, storm rumble with randomized thunder bursts) plus a quiet two-
+  oscillator drone underneath, gated behind an explicit mute/unmute toggle
+  in the header (`SoundToggle.tsx`) since the AudioContext can only start
+  unsuspended from a real user-gesture handler. Verified live: toggling on/
+  off and switching cities with sound enabled both work with zero console
+  errors (headless Chromium can build and run the audio graph even though
+  there's no real output device to hear it through).
 
 ## Future ideas (not yet scheduled)
 
