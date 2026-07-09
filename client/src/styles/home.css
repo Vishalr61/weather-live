@@ -46,7 +46,7 @@
   gap: 8px;
 }
 
-.sound-toggle {
+.icon-toggle {
   background: none;
   border: 1px solid var(--border);
   border-radius: var(--radius);
@@ -58,7 +58,7 @@
   transition: border-color 0.15s;
 }
 
-.sound-toggle:hover {
+.icon-toggle:hover {
   border-color: var(--text);
 }
 

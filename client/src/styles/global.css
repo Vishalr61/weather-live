@@ -5,16 +5,32 @@
 }
 
 :root {
-  --bg:        #f4f5f7;
-  --surface:   #ffffff;
-  --text:      #111827;
-  --muted:     #6b7280;
-  --accent:    #2563eb;
-  --accent-bg: #eff6ff;
-  --border:    #e5e7eb;
-  --error:     #dc2626;
-  --shadow:    0 1px 3px rgba(0, 0, 0, 0.10), 0 1px 2px rgba(0, 0, 0, 0.06);
-  --radius:    8px;
+  --bg:           #f4f5f7;
+  --surface:      #ffffff;
+  --text:         #111827;
+  --muted:        #6b7280;
+  --accent:       #2563eb;
+  --accent-hover: #1d4ed8;
+  --accent-bg:    #eff6ff;
+  --border:       #e5e7eb;
+  --error:        #dc2626;
+  --shadow:       0 1px 3px rgba(0, 0, 0, 0.10), 0 1px 2px rgba(0, 0, 0, 0.06);
+  --radius:       8px;
+}
+
+/* data-theme is set synchronously by an inline script in index.html, before
+   the stylesheet paints — avoids a flash of the wrong theme on load. */
+:root[data-theme='dark'] {
+  --bg:           #0f1115;
+  --surface:      #1a1d24;
+  --text:         #e5e7eb;
+  --muted:        #9ca3af;
+  --accent:       #60a5fa;
+  --accent-hover: #3b82f6;
+  --accent-bg:    #1e293b;
+  --border:       #2d3138;
+  --error:        #f87171;
+  --shadow:       0 1px 3px rgba(0, 0, 0, 0.4), 0 1px 2px rgba(0, 0, 0, 0.3);
 }
 
 body {

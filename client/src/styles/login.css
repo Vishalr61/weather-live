@@ -74,7 +74,7 @@
 }
 
 .login-form button[type='submit']:hover:not(:disabled) {
-  background: #1d4ed8;
+  background: var(--accent-hover);
 }
 
 .login-form button[type='submit']:disabled {

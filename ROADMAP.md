@@ -60,6 +60,18 @@ enhancement work has continuity across sessions.
   daily highs, between the current-conditions text and the forecast strip.
   Verified live: 8 data points render (7 past days + today), correct
   min/max range label, zero console errors.
+- **Dark mode** — `--bg`/`--surface`/`--text`/etc. tokens in `global.css` now
+  have a `:root[data-theme="dark"]` override; an inline script in
+  `index.html` sets `data-theme` synchronously from `localStorage` (or
+  `prefers-color-scheme` on first visit) before first paint, avoiding a
+  flash of the wrong theme. `useTheme` + `ThemeToggle.tsx` (🌙/☀️, next to
+  the sound toggle) let the user override and persist their choice. Bonus:
+  the globe's WebGL canvas is transparent, so its surrounding panel now
+  matches the dark surface instead of stark white — the night side of the
+  globe reads much more naturally against a dark page. Verified live: OS
+  dark preference respected with no prior localStorage, toggle flips
+  `data-theme` immediately, and the choice survives a full page reload
+  with no flash (checked login page too, not just the authenticated view).
 
 ## Future ideas (not yet scheduled)
 

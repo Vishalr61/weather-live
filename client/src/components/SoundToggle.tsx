@@ -9,7 +9,7 @@ export function SoundToggle({ enabled, onToggle }: SoundToggleProps) {
   return (
     <button
       type="button"
-      className="sound-toggle"
+      className="icon-toggle"
       onClick={onToggle}
       aria-pressed={enabled}
       aria-label={label}
