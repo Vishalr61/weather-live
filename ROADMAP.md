@@ -12,10 +12,17 @@ enhancement work has continuity across sessions.
 - **7-day forecast strip** — `GET /api/weather/forecast?city=` (Open-Meteo
   `daily=` params, `timezone=auto` so each city buckets by its own local
   date), rendered as a horizontal strip under the current-conditions card.
+- **Searchable city list + animated camera fly-to** — `CitySearch.tsx`
+  filters the 27 cities by name; picking one (via search or the `<select>`
+  fallback) animates the globe's camera around to face that city, using an
+  nlerp between unit direction vectors (not a true slerp — visually
+  indistinguishable at this angular scale, much simpler to get right). A
+  direct marker click skips the flight since the user is already looking
+  at it. Verified live: flying from an Americas-facing view to Tokyo
+  correctly rotates across the whole globe and centers the right marker.
 
 ## In progress / queued (this batch)
 
-- [ ] Searchable city list + animated camera fly-to on the globe
 - [ ] Procedural ambient soundscape (Web Audio API) driven by current
       condition, gated behind an explicit mute/unmute toggle (autoplay policy)
 

@@ -9,9 +9,11 @@ import { fetchCities, fetchForecast, fetchWeather } from '../api/weather.ts';
 import { ToastContainer } from '../components/ToastContainer.tsx';
 import { ConnectionStatus } from '../components/ConnectionStatus.tsx';
 import { Globe } from '../components/Globe.tsx';
+import type { FlyToRequest } from '../components/Globe.tsx';
 import { AlertTicker } from '../components/AlertTicker.tsx';
 import { WeatherParticles } from '../components/WeatherParticles.tsx';
 import { ForecastStrip } from '../components/ForecastStrip.tsx';
+import { CitySearch } from '../components/CitySearch.tsx';
 import type { City, ForecastDay, WeatherResponse } from '../types.ts';
 import '../styles/home.css';
 
@@ -29,6 +31,7 @@ export function Home() {
   const [weatherError, setWeatherError] = useState<string | null>(null);
   const [loading, setLoading] = useState(false);
   const [forecast, setForecast] = useState<ForecastDay[]>([]);
+  const [flyTo, setFlyTo] = useState<FlyToRequest | null>(null);
 
   useEffect(() => {
     fetchCities()
@@ -93,6 +96,14 @@ export function Home() {
     }
   };
 
+  // Used by the search box and the <select> fallback, where the target city
+  // may currently be on the globe's far side. A direct marker click skips
+  // this — the user is already looking at what they clicked.
+  const selectCityAndFly = (cityId: string) => {
+    void selectCity(cityId);
+    if (cityId) setFlyTo({ cityId, nonce: Date.now() });
+  };
+
   const handleLogout = () => {
     logout();
     navigate('/login', { replace: true });
@@ -113,6 +124,7 @@ export function Home() {
             selectedCityId={currentCityId}
             onSelectCity={(id) => { void selectCity(id); }}
             lastAlert={lastAlert}
+            flyTo={flyTo}
           />
           <p className="globe-hint">Drag to rotate. Click a city marker to select it.</p>
           <AlertTicker alerts={recentAlerts} />
@@ -120,11 +132,15 @@ export function Home() {
 
         <section className="detail-panel">
           <div className="city-selector">
-            <label htmlFor="city">Select a city</label>
+            <label htmlFor="city-search">Find a city</label>
+            <CitySearch cities={cities} onSelect={selectCityAndFly} />
+            <label htmlFor="city" className="city-selector-fallback-label">
+              Or browse the full list
+            </label>
             <select
               id="city"
               value={currentCityId}
-              onChange={(e) => { void selectCity(e.target.value); }}
+              onChange={(e) => { selectCityAndFly(e.target.value); }}
             >
               <option value="">— choose a city —</option>
               {cities.map((c) => (

@@ -4,15 +4,21 @@ import type { GlobeHandle } from '../three/globeScene.ts';
 import type { City, GlobalAlertPayload, WeatherSnapshotPayload } from '../types.ts';
 import '../styles/globe.css';
 
+export interface FlyToRequest {
+  cityId: string;
+  nonce: number;
+}
+
 interface GlobeProps {
   cities: City[];
   snapshot: WeatherSnapshotPayload | null;
   selectedCityId: string;
   onSelectCity: (cityId: string) => void;
   lastAlert: GlobalAlertPayload | null;
+  flyTo: FlyToRequest | null;
 }
 
-export function Globe({ cities, snapshot, selectedCityId, onSelectCity, lastAlert }: GlobeProps) {
+export function Globe({ cities, snapshot, selectedCityId, onSelectCity, lastAlert, flyTo }: GlobeProps) {
   const containerRef = useRef<HTMLDivElement>(null);
   const globeRef = useRef<GlobeHandle | null>(null);
 
@@ -48,6 +54,12 @@ export function Globe({ cities, snapshot, selectedCityId, onSelectCity, lastAler
   useEffect(() => {
     if (lastAlert) globeRef.current?.triggerRipple(lastAlert);
   }, [lastAlert]);
+
+  // Keyed on `nonce`, not just cityId, so re-selecting the same city (e.g.
+  // searching for it again after rotating away) still triggers a flight.
+  useEffect(() => {
+    if (flyTo) globeRef.current?.flyToCity(flyTo.cityId);
+  }, [flyTo]);
 
   return <div ref={containerRef} className="globe-canvas" />;
 }

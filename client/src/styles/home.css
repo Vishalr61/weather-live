@@ -81,6 +81,13 @@
   color: var(--text);
 }
 
+.city-selector .city-selector-fallback-label {
+  font-size: 0.75rem;
+  font-weight: 400;
+  color: var(--muted);
+  margin-top: 6px;
+}
+
 .city-selector select {
   border: 1px solid var(--border);
   border-radius: var(--radius);

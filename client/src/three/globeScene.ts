@@ -17,7 +17,7 @@ import {
   Vector2,
   WebGLRenderer,
 } from 'three';
-import type { Object3D } from 'three';
+import type { Object3D, Vector3 } from 'three';
 import { OrbitControls } from 'three/addons/controls/OrbitControls.js';
 import { getSubsolarPoint, latLngToVector3 } from './geoMath.ts';
 import { weatherCodeToColor } from './weatherVisuals.ts';
@@ -33,6 +33,7 @@ export interface GlobeHandle {
   updateSnapshot(snapshot: WeatherSnapshotPayload): void;
   triggerRipple(alert: GlobalAlertPayload): void;
   setSelectedCity(cityId: string | null): void;
+  flyToCity(cityId: string): void;
   onCityClick(cb: (cityId: string) => void): void;
   resize(): void;
 }
@@ -50,6 +51,11 @@ interface RippleRecord {
 }
 
 const RIPPLE_DURATION_MS = 2500;
+const FLIGHT_DURATION_MS = 1200;
+
+function easeInOutCubic(t: number): number {
+  return t < 0.5 ? 4 * t * t * t : 1 - (-2 * t + 2) ** 3 / 2;
+}
 
 function createGlowTexture(): CanvasTexture {
   const size = 128;
@@ -141,6 +147,7 @@ export function createGlobe(container: HTMLDivElement): GlobeHandle {
   const ripples: RippleRecord[] = [];
   let selectedCityId: string | null = null;
   let onClickCallback: ((cityId: string) => void) | null = null;
+  let flight: { startDir: Vector3; targetDir: Vector3; startedAt: number } | null = null;
 
   function clearMarkers() {
     for (const obj of markersGroup) {
@@ -202,6 +209,21 @@ export function createGlobe(container: HTMLDivElement): GlobeHandle {
 
   function setSelectedCity(cityId: string | null) {
     selectedCityId = cityId;
+  }
+
+  // Animates the camera around the (stationary) globe so the given city ends
+  // up facing the viewer — used when a city is picked via search/dropdown,
+  // where it may currently be on the far side. Not used for a direct marker
+  // click, since the user is already looking at it.
+  function flyToCity(cityId: string) {
+    const marker = markers.get(cityId);
+    if (!marker) return;
+    controls.autoRotate = false;
+    flight = {
+      startDir: camera.position.clone().normalize(),
+      targetDir: marker.sprite.position.clone().normalize(),
+      startedAt: performance.now(),
+    };
   }
 
   function onCityClick(cb: (cityId: string) => void) {
@@ -287,6 +309,16 @@ export function createGlobe(container: HTMLDivElement): GlobeHandle {
       (ripple.sprite.material as SpriteMaterial).opacity = 1 - t;
     }
 
+    if (flight) {
+      const t = Math.min(1, (now - flight.startedAt) / FLIGHT_DURATION_MS);
+      const eased = easeInOutCubic(t);
+      const distance = camera.position.length();
+      const dir = flight.startDir.clone().lerp(flight.targetDir, eased).normalize();
+      camera.position.copy(dir.multiplyScalar(distance));
+      camera.lookAt(0, 0, 0);
+      if (t >= 1) flight = null;
+    }
+
     controls.update();
     renderer.render(scene, camera);
   }
@@ -321,5 +353,14 @@ export function createGlobe(container: HTMLDivElement): GlobeHandle {
     }
   }
 
-  return { dispose, setCities, updateSnapshot, triggerRipple, setSelectedCity, onCityClick, resize };
+  return {
+    dispose,
+    setCities,
+    updateSnapshot,
+    triggerRipple,
+    setSelectedCity,
+    flyToCity,
+    onCityClick,
+    resize,
+  };
 }
