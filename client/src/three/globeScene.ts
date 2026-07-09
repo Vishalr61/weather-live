@@ -33,6 +33,7 @@ export interface GlobeHandle {
   updateSnapshot(snapshot: WeatherSnapshotPayload): void;
   triggerRipple(alert: GlobalAlertPayload): void;
   setSelectedCity(cityId: string | null): void;
+  setWatchedCities(cityIds: string[]): void;
   flyToCity(cityId: string): void;
   onCityClick(cb: (cityId: string) => void): void;
   resize(): void;
@@ -145,6 +146,7 @@ export function createGlobe(container: HTMLDivElement): GlobeHandle {
   const markersGroup: Object3D[] = [];
   const markers = new Map<string, MarkerRecord>();
   const ripples: RippleRecord[] = [];
+  const watchRings = new Map<string, Sprite>();
   let selectedCityId: string | null = null;
   let onClickCallback: ((cityId: string) => void) | null = null;
   let flight: { startDir: Vector3; targetDir: Vector3; startedAt: number } | null = null;
@@ -155,6 +157,11 @@ export function createGlobe(container: HTMLDivElement): GlobeHandle {
     }
     markersGroup.length = 0;
     markers.clear();
+    for (const sprite of watchRings.values()) {
+      earth.remove(sprite);
+      (sprite.material as SpriteMaterial).dispose();
+    }
+    watchRings.clear();
   }
 
   function setCities(cities: City[]) {
@@ -209,6 +216,41 @@ export function createGlobe(container: HTMLDivElement): GlobeHandle {
 
   function setSelectedCity(cityId: string | null) {
     selectedCityId = cityId;
+  }
+
+  // A persistent, static ring (unlike the animated ripple) around every
+  // watched city — distinct from the "selected" highlight, so you can see
+  // your whole watchlist on the globe at a glance, not just what's currently
+  // in the detail panel.
+  function setWatchedCities(cityIds: string[]) {
+    const next = new Set(cityIds);
+
+    for (const [cityId, sprite] of watchRings) {
+      if (!next.has(cityId)) {
+        earth.remove(sprite);
+        (sprite.material as SpriteMaterial).dispose();
+        watchRings.delete(cityId);
+      }
+    }
+
+    for (const cityId of next) {
+      if (watchRings.has(cityId)) continue;
+      const marker = markers.get(cityId);
+      if (!marker) continue;
+
+      const material = new SpriteMaterial({
+        map: ringTexture,
+        color: 0x93c5fd,
+        depthTest: false,
+        transparent: true,
+        opacity: 0.85,
+      });
+      const sprite = new Sprite(material);
+      sprite.position.copy(marker.sprite.position);
+      sprite.scale.setScalar(0.7);
+      earth.add(sprite);
+      watchRings.set(cityId, sprite);
+    }
   }
 
   // Animates the camera around the (stationary) globe so the given city ends
@@ -359,6 +401,7 @@ export function createGlobe(container: HTMLDivElement): GlobeHandle {
     updateSnapshot,
     triggerRipple,
     setSelectedCity,
+    setWatchedCities,
     flyToCity,
     onCityClick,
     resize,

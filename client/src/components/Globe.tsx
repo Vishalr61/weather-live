@@ -16,9 +16,18 @@ interface GlobeProps {
   onSelectCity: (cityId: string) => void;
   lastAlert: GlobalAlertPayload | null;
   flyTo: FlyToRequest | null;
+  watchedCityIds: string[];
 }
 
-export function Globe({ cities, snapshot, selectedCityId, onSelectCity, lastAlert, flyTo }: GlobeProps) {
+export function Globe({
+  cities,
+  snapshot,
+  selectedCityId,
+  onSelectCity,
+  lastAlert,
+  flyTo,
+  watchedCityIds,
+}: GlobeProps) {
   const containerRef = useRef<HTMLDivElement>(null);
   const globeRef = useRef<GlobeHandle | null>(null);
 
@@ -60,6 +69,15 @@ export function Globe({ cities, snapshot, selectedCityId, onSelectCity, lastAler
   useEffect(() => {
     if (flyTo) globeRef.current?.flyToCity(flyTo.cityId);
   }, [flyTo]);
+
+  // Also re-runs when `cities` changes: the watchlist is hydrated from
+  // localStorage synchronously at mount, often before the city list (and
+  // therefore the markers themselves) have finished loading — without this
+  // dependency, watch rings for a restored watchlist would silently never
+  // get drawn on a fresh page load.
+  useEffect(() => {
+    globeRef.current?.setWatchedCities(watchedCityIds);
+  }, [cities, watchedCityIds]);
 
   return <div ref={containerRef} className="globe-canvas" />;
 }

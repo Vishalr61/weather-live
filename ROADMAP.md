@@ -72,11 +72,21 @@ enhancement work has continuity across sessions.
   dark preference respected with no prior localStorage, toggle flips
   `data-theme` immediately, and the choice survives a full page reload
   with no flash (checked login page too, not just the authenticated view).
+- **Watched-city rings on the globe** — every watched city now gets a
+  persistent static ring around its marker (distinct from the animated
+  ripple and from the brighter/larger "currently selected" state), so the
+  whole watchlist is visible on the globe at a glance. Caught and fixed a
+  real race condition along the way: the watchlist hydrates synchronously
+  from `localStorage` at mount, often before the city list (and therefore
+  the markers) finishes loading async, so the first `setWatchedCities`
+  call would silently find no markers to attach rings to. Fixed by keying
+  the effect on `[cities, watchedCityIds]` instead of just the latter.
+  Verified live: watched Melbourne, London, and Tokyo, confirmed all three
+  rings render, then did a full page reload (the exact scenario the race
+  condition would hit) and confirmed all three rings still appear
+  correctly, zero console errors.
 
 ## Future ideas (not yet scheduled)
-
-- Visually distinguish watched-but-not-currently-viewed cities on the
-  globe (e.g. a subtle ring around their markers)
 - Mobile layout pass dedicated to the globe (currently responsive but not
   touch-gesture-tuned)
 - Deployment (not attempted without explicit user go-ahead — out of scope

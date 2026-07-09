@@ -123,6 +123,7 @@ export function Home() {
             onSelectCity={(id) => { void selectCity(id); }}
             lastAlert={lastAlert}
             flyTo={flyTo}
+            watchedCityIds={watchlist}
           />
           <p className="globe-hint">Drag to rotate. Click a city marker to select it.</p>
           <AlertTicker alerts={recentAlerts} />
