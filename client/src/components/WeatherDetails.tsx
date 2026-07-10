@@ -1,5 +1,6 @@
 import type { WeatherResponse } from '../types.ts';
 import { useUnit } from '../context/UnitContext.tsx';
+import { formatLocalTime } from '../formatLocalTime.ts';
 import '../styles/weatherDetails.css';
 
 interface WeatherDetailsProps {
@@ -21,20 +22,6 @@ function uvLabel(uv: number): string {
   if (uv < 8) return 'High';
   if (uv < 11) return 'Very High';
   return 'Extreme';
-}
-
-// Open-Meteo's sunrise/sunset strings are already in the city's own local
-// time (timezone=auto) with no offset suffix — parsing them with Date would
-// reinterpret the wall-clock value against the *viewer's* timezone instead
-// of just displaying it, so this formats the string directly.
-function formatLocalTime(isoLocal: string): string {
-  const time = isoLocal.split('T')[1];
-  if (!time) return isoLocal;
-  const [hourStr, minute] = time.split(':');
-  const hour = Number(hourStr);
-  const period = hour >= 12 ? 'PM' : 'AM';
-  const displayHour = hour % 12 === 0 ? 12 : hour % 12;
-  return `${displayHour}:${minute} ${period}`;
 }
 
 export function WeatherDetails({ weather }: WeatherDetailsProps) {

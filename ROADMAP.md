@@ -319,6 +319,40 @@ enhancement work has continuity across sessions.
   the live feels-like/humidity values; wind direction 12° correctly
   shown as "NNE". Confirmed the main bundle only grew ~2KB (232.94KB vs.
   230.70KB) and the Globe chunk was untouched, proving the split held.
+- **Hourly forecast (next 24h)** — new `GET /api/weather/hourly?city=`
+  using Open-Meteo's `forecast_hours=24` param instead of `forecast_days`:
+  it returns exactly the next 24 hours starting from the current hour, not
+  from local midnight, so no server- or client-side filtering is needed to
+  drop already-passed hours earlier today (confirmed via a direct curl
+  check made at 15:00 local time — first entry was 15:00, last was 14:00
+  the next day). `HourlyBlockSchema` added alongside the existing
+  `DailyBlockSchema`, validating the three parallel arrays
+  (`temperature_2m`, `weather_code`, `precipitation_probability`) match
+  `time`'s length; two new schema tests bring the suite to 57. Rendered as
+  a horizontal `HourlyForecast.tsx` strip (same visual language as
+  `ForecastStrip.tsx`) between the trend sparkline and the 7-day strip,
+  showing "Now" for the first entry then hour-of-day labels, a weather-
+  color dot, temp, and a precipitation-probability badge when nonzero.
+  Verified live: 24 entries rendered for Tokyo, labels and temps matched a
+  direct curl call to the same endpoint.
+- **Shareable snapshot export** — `shareCard.ts` hand-draws a branded PNG
+  "weather card" on an offscreen `<canvas>` (city, temp, description,
+  feels-like/humidity/wind/UV/sunrise/sunset, comfort score, moon phase,
+  activity tip) rather than screenshotting the real DOM card, which would
+  have needed a DOM-to-image library (e.g. html2canvas) just to rasterize
+  text and gradients — this keeps the feature dependency-free. Reuses the
+  same `computeComfortScore`/`getActivityTip`/`getMoonPhase`/
+  `formatLocalTime` helpers the on-page card already calls, so the
+  numbers can't drift from what's displayed (`formatLocalTime` was pulled
+  out of `WeatherDetails.tsx` into its own module specifically so both
+  places share one implementation instead of two copies going stale
+  independently). `ShareButton.tsx` tries the Web Share API first (lets a
+  mobile browser hand the PNG straight to the OS share sheet) and falls
+  back to a plain download when unsupported or cancelled. Verified live
+  via Playwright: clicking the button downloaded a 300KB+ PNG, and the
+  rendered image was visually inspected to confirm every field (including
+  sunrise/sunset in the same 12-hour format as the live page) matched the
+  on-screen weather card exactly.
 
 ## Future ideas (not yet scheduled)
 

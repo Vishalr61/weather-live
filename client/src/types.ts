@@ -84,3 +84,17 @@ export interface ForecastResponse {
   cityId: string;
   days: ForecastDay[];
 }
+
+export interface HourlyEntry {
+  time: string;
+  temp: number;
+  weatherCode: number;
+  precipProbabilityPct: number;
+  description: string;
+}
+
+export interface HourlyResponse {
+  city: string;
+  cityId: string;
+  hours: HourlyEntry[];
+}

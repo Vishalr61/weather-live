@@ -133,8 +133,8 @@ weather-live/
 │   ├── src/
 │   │   ├── auth/          — bcrypt + JWT helpers, in-memory user store
 │   │   ├── routes/        — login/register/logout/me (httpOnly cookie auth), weather
-│   │   │                    (cities/batch/poll-now/current/forecast/history/alerts),
-│   │   │                    messages (+ supertest coverage for all)
+│   │   │                    (cities/batch/poll-now/current/forecast/hourly/history/
+│   │   │                    alerts), messages (+ supertest coverage for all)
 │   │   ├── socket/        — cookie-reading JWT handshake middleware, watch/unwatch
 │   │   │                    room handlers (+ real multi-client integration test)
 │   │   ├── middleware/    — shared per-IP rate limiter (+ tests)
@@ -153,22 +153,29 @@ weather-live/
     ├── public/textures/   — Earth day/night/normal/specular maps (MIT, three.js examples)
     ├── src/
     │   ├── pages/         — Login, Home
-    │   ├── components/    — Globe, AlertTicker, WeatherParticles, ForecastStrip,
+    │   ├── components/    — Globe, AlertTicker, WeatherParticles, WeatherDetails,
+    │   │                    WeatherInsights, HourlyForecast, ForecastStrip,
     │   │                    TrendSparkline, Sparkline, CitySearch, Watchlist,
-    │   │                    SoundToggle, Toast, ToastContainer, ProtectedRoute,
-    │   │                    ConnectionStatus
+    │   │                    SoundToggle, ThemeToggle, UnitToggle, ShareButton,
+    │   │                    Toast, ToastContainer, ProtectedRoute, ConnectionStatus
     │   ├── three/         — geoMath (lat/lng↔sphere, subsolar point), weatherVisuals,
     │   │                    globeScene (imperative Three.js scene)
     │   ├── audio/         — soundscapeEngine (imperative Web Audio graph)
     │   ├── hooks/         — useSocket, useMessages, useWeatherSnapshot,
-    │   │                    useGlobalAlerts, useWatchlist, useSoundscape
+    │   │                    useGlobalAlerts, useWatchlist, useSoundscape, useTheme
     │   ├── context/       — AuthContext (isAuthenticated/isLoading via /api/auth/me;
     │   │                    no token — it's in an httpOnly cookie, invisible to JS),
     │   │                    UnitContext (°C/°F — data stays Celsius, converts at display)
     │   ├── api/           — fetch wrappers (auth, weather)
+    │   ├── weatherInsights.ts, moonPhase.ts, formatLocalTime.ts — pure derived-
+    │   │                    insight helpers shared between the on-page cards and
+    │   │                    shareCard.ts (moonPhase kept import-free on purpose —
+    │   │                    see trade-offs)
+    │   ├── shareCard.ts   — draws the shareable snapshot PNG on an offscreen canvas
     │   ├── styles/        — global, login, home, toast, globe, alertTicker,
-    │   │                    citySearch, watchlist, forecastStrip, trendSparkline,
-    │   │                    weatherDetails
+    │   │                    citySearch, watchlist, forecastStrip, hourlyForecast,
+    │   │                    trendSparkline, weatherDetails, weatherInsights,
+    │   │                    shareButton
     │   └── types.ts       — mirrored client/server types
     └── vite.config.ts
 ```
@@ -193,7 +200,7 @@ weather-live/
 - **Refresh tokens with rotation** — 8-hour JWTs require re-login; a refresh flow keeps sessions alive without compromising revocability
 - **Persistent database** (Postgres + an ORM) — replaces the in-memory user store and message log
 - **Distributed tracing** (OpenTelemetry) — structured logging (below) covers "what's happening right now"; correlating a request across HTTP → Socket.IO → the poller would need real spans, which is a bigger lift
-- **Fetch-mocked tests for the poller and the live-Open-Meteo routes** (`/api/weather`, `/forecast`, `/history`) — same reasoning as the alert-threshold logic: mocking `fetch` is more effort than this portfolio-scale project needs when live curl checks already cover them each time they change
+- **Fetch-mocked tests for the poller and the live-Open-Meteo routes** (`/api/weather`, `/forecast`, `/hourly`, `/history`) — same reasoning as the alert-threshold logic: mocking `fetch` is more effort than this portfolio-scale project needs when live curl checks already cover them each time they change
 - **Email verification on registration** — `POST /api/auth/register` exists now (see below) but doesn't verify email ownership, since that needs real SMTP/third-party infrastructure to actually test end to end
 - **A real database for alert history** — currently an append-to-disk JSON file (`server/.data/alert-history.json`, capped at 100 entries), which survives restarts but isn't queryable/filterable the way a real deployment would want
 
@@ -208,7 +215,7 @@ Room targeting was verified manually with a three-terminal setup (server, browse
 
 Reconnect handling (Manager-level `reconnect` event + explicit room rejoin) is present in code but not testable through Vite's dev proxy, which doesn't recover from a backend that disappears mid-session. Behind a real reverse proxy (nginx, Caddy, AWS ALB) the WebSocket connection re-establishes cleanly when the backend recovers, which is what the reconnect handlers in the code are designed for.
 
-The alert-threshold logic (`evaluateAlert`, `recordAndCheckEdge`), the Open-Meteo response schemas, and the HTTP routes with no external network dependency are unit/integration-tested — `cd server && npm test` (54 tests as of writing). The route tests use `supertest` against the real Express routers with dependencies stubbed at their existing factory boundaries — a mocked `io` for `messagesRouter` (covering the same subscribed/unsubscribed recipients matrix above, now automated), stub `getSnapshot`/`pollNow` functions for `weatherRouter`. `auth.test.ts` runs against the real `bcrypt`/JWT/cookie code paths (`JWT_SECRET` is set in `vitest.setup.ts` so tests don't depend on a real `.env` file existing) — since supertest doesn't manage a cookie jar across requests the way a browser does, a small helper extracts the raw `Set-Cookie` value from one response so a later request can `.set('Cookie', ...)` with it explicitly, covering `/login` → `/me` → `/logout` → `/me` round trips and asserting the `Set-Cookie` header actually carries `HttpOnly`. Routes that call live Open-Meteo (`/api/weather`, `/forecast`, `/history`) are deliberately left out of the automated suite — same reasoning as the poller itself — and covered by live curl/browser checks instead whenever they change.
+The alert-threshold logic (`evaluateAlert`, `recordAndCheckEdge`), the Open-Meteo response schemas, and the HTTP routes with no external network dependency are unit/integration-tested — `cd server && npm test` (57 tests as of writing). The route tests use `supertest` against the real Express routers with dependencies stubbed at their existing factory boundaries — a mocked `io` for `messagesRouter` (covering the same subscribed/unsubscribed recipients matrix above, now automated), stub `getSnapshot`/`pollNow` functions for `weatherRouter`. `auth.test.ts` runs against the real `bcrypt`/JWT/cookie code paths (`JWT_SECRET` is set in `vitest.setup.ts` so tests don't depend on a real `.env` file existing) — since supertest doesn't manage a cookie jar across requests the way a browser does, a small helper extracts the raw `Set-Cookie` value from one response so a later request can `.set('Cookie', ...)` with it explicitly, covering `/login` → `/me` → `/logout` → `/me` round trips and asserting the `Set-Cookie` header actually carries `HttpOnly`. Routes that call live Open-Meteo (`/api/weather`, `/forecast`, `/hourly`, `/history`) are deliberately left out of the automated suite — same reasoning as the poller itself — and covered by live curl/browser checks instead whenever they change.
 
 `server/src/socket/integration.test.ts` goes one step further than the mocked-`io` route tests: a real Socket.IO server on an ephemeral port, with real `socket.io-client` connections, verifying handshake auth (missing/invalid/valid token) and the actual room-targeting behavior — a message pushed to one city's room reaches only the client watching it, a client can watch multiple cities and receive alerts for either, and `unwatchCity` genuinely stops delivery. Node's `socket.io-client` has no browser cookie jar, so the token is attached via `extraHeaders: { Cookie: 'token=...' }` on connect, exercising the same `socket.handshake.headers.cookie` parsing path the real server uses. This is what the manual verification matrix above used to be the only coverage for.
 

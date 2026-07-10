@@ -1,7 +1,7 @@
 import { z } from 'zod';
 import type { City } from '../data/cities.js';
 import type { CityConditions } from './alertRules.js';
-import { BatchedCurrentConditionsSchema, DailyBlockSchema } from './openMeteoSchemas.js';
+import { BatchedCurrentConditionsSchema, DailyBlockSchema, HourlyBlockSchema } from './openMeteoSchemas.js';
 
 // Open-Meteo accepts comma-separated latitude/longitude lists and returns
 // results in the same order as the input — one HTTP call covers all cities
@@ -76,5 +76,38 @@ export async function fetchDailyBlock(
     tempMax: daily.temperature_2m_max[i],
     tempMin: daily.temperature_2m_min[i],
     weatherCode: daily.weather_code[i],
+  }));
+}
+
+export interface HourlyEntry {
+  time: string;
+  temp: number;
+  weatherCode: number;
+  precipProbabilityPct: number;
+}
+
+// forecast_hours (not forecast_days) gives exactly the next N hours from
+// the current hour, not from local midnight.
+export async function fetchHourlyBlock(city: City, hours: number): Promise<HourlyEntry[] | null> {
+  const url =
+    `https://api.open-meteo.com/v1/forecast` +
+    `?latitude=${city.lat}&longitude=${city.lng}` +
+    `&hourly=temperature_2m,weather_code,precipitation_probability` +
+    `&forecast_hours=${hours}` +
+    `&temperature_unit=celsius&timezone=auto`;
+
+  const upstream = await fetch(url);
+  if (!upstream.ok) return null;
+
+  const raw: unknown = await upstream.json();
+  const result = HourlyBlockSchema.safeParse(raw);
+  if (!result.success) return null;
+
+  const { hourly } = result.data;
+  return hourly.time.map((time, i) => ({
+    time,
+    temp: hourly.temperature_2m[i],
+    weatherCode: hourly.weather_code[i],
+    precipProbabilityPct: hourly.precipitation_probability[i],
   }));
 }

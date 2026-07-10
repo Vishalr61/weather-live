@@ -5,7 +5,7 @@ import { cities, findCity } from '../data/cities.js';
 import type { City } from '../data/cities.js';
 import { describeWeatherCode } from '../weather/wmoDescriptions.js';
 import { getAlertHistory } from '../weather/alertHistory.js';
-import { fetchDailyBlock } from '../weather/openMeteoClient.js';
+import { fetchDailyBlock, fetchHourlyBlock } from '../weather/openMeteoClient.js';
 import { CurrentConditionsSchema } from '../weather/openMeteoSchemas.js';
 import { pushRateLimit } from '../middleware/rateLimit.js';
 import type { PollResult, WeatherPollerHandle } from '../weather/poller.js';
@@ -135,6 +135,25 @@ export function weatherRouter(
       city: city.label,
       cityId: city.id,
       days: days.map((d) => ({ ...d, description: describeWeatherCode(d.weatherCode) })),
+    });
+  });
+
+  // Next 24 hours from the current hour — forecast_hours (not forecast_days)
+  // means no filtering needed to drop already-passed hours earlier today.
+  router.get('/hourly', async (req, res) => {
+    const city = resolveCityFromQuery(req, res);
+    if (!city) return;
+
+    const hours = await fetchHourlyBlock(city, 24);
+    if (!hours) {
+      res.status(502).json({ error: 'weather service unavailable' });
+      return;
+    }
+
+    res.json({
+      city: city.label,
+      cityId: city.id,
+      hours: hours.map((h) => ({ ...h, description: describeWeatherCode(h.weatherCode) })),
     });
   });
 

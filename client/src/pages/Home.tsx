@@ -9,7 +9,7 @@ import { useSoundscape } from '../hooks/useSoundscape.ts';
 import { useWatchlist } from '../hooks/useWatchlist.ts';
 import { useTheme } from '../hooks/useTheme.ts';
 import { useUnit } from '../context/UnitContext.tsx';
-import { fetchCities, fetchForecast, fetchHistory, fetchWeather } from '../api/weather.ts';
+import { fetchCities, fetchForecast, fetchHistory, fetchHourly, fetchWeather } from '../api/weather.ts';
 import { ToastContainer } from '../components/ToastContainer.tsx';
 import { ConnectionStatus } from '../components/ConnectionStatus.tsx';
 import type { FlyToRequest } from '../components/Globe.tsx';
@@ -17,14 +17,16 @@ import { AlertTicker } from '../components/AlertTicker.tsx';
 import { WeatherParticles } from '../components/WeatherParticles.tsx';
 import { WeatherDetails } from '../components/WeatherDetails.tsx';
 import { WeatherInsights } from '../components/WeatherInsights.tsx';
+import { HourlyForecast } from '../components/HourlyForecast.tsx';
 import { ForecastStrip } from '../components/ForecastStrip.tsx';
+import { ShareButton } from '../components/ShareButton.tsx';
 import { TrendSparkline } from '../components/TrendSparkline.tsx';
 import { CitySearch } from '../components/CitySearch.tsx';
 import { SoundToggle } from '../components/SoundToggle.tsx';
 import { ThemeToggle } from '../components/ThemeToggle.tsx';
 import { UnitToggle } from '../components/UnitToggle.tsx';
 import { Watchlist } from '../components/Watchlist.tsx';
-import type { City, ForecastDay, WeatherResponse } from '../types.ts';
+import type { City, ForecastDay, HourlyEntry, WeatherResponse } from '../types.ts';
 import '../styles/home.css';
 
 // Lazy-loaded: Three.js (renderer, scene graph, OrbitControls) is the bulk
@@ -52,6 +54,7 @@ export function Home() {
   const [loading, setLoading] = useState(false);
   const [forecast, setForecast] = useState<ForecastDay[]>([]);
   const [history, setHistory] = useState<ForecastDay[]>([]);
+  const [hourly, setHourly] = useState<HourlyEntry[]>([]);
   const [flyTo, setFlyTo] = useState<FlyToRequest | null>(null);
   const { enabled: soundEnabled, toggle: toggleSound } = useSoundscape(weather?.weatherCode ?? null);
   const { theme, toggleTheme } = useTheme();
@@ -93,6 +96,7 @@ export function Home() {
     setWeatherError(null);
     setForecast([]);
     setHistory([]);
+    setHourly([]);
     setLoading(true);
     try {
       const data = await fetchWeather(cityId, controller.signal);
@@ -120,6 +124,13 @@ export function Home() {
       if (isCurrent()) setHistory(data.days);
     } catch {
       if (isCurrent()) setHistory([]);
+    }
+
+    try {
+      const data = await fetchHourly(cityId, controller.signal);
+      if (isCurrent()) setHourly(data.hours);
+    } catch {
+      if (isCurrent()) setHourly([]);
     }
   };
 
@@ -207,7 +218,9 @@ export function Home() {
                 <WeatherDetails weather={weather} />
                 <WeatherInsights weather={weather} />
                 <TrendSparkline days={history} />
+                <HourlyForecast hours={hourly} />
                 <ForecastStrip days={forecast} />
+                <ShareButton weather={weather} />
               </div>
             </div>
           )}

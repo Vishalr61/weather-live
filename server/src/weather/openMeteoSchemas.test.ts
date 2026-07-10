@@ -3,6 +3,7 @@ import {
   BatchedCurrentConditionsSchema,
   CurrentConditionsSchema,
   DailyBlockSchema,
+  HourlyBlockSchema,
 } from './openMeteoSchemas.js';
 
 const WELL_FORMED_CURRENT = {
@@ -108,6 +109,32 @@ describe('DailyBlockSchema', () => {
         temperature_2m_max: 20,
         temperature_2m_min: [10],
         weather_code: [0],
+      },
+    });
+    expect(result.success).toBe(false);
+  });
+});
+
+describe('HourlyBlockSchema', () => {
+  it('accepts a well-formed hourly block', () => {
+    const result = HourlyBlockSchema.safeParse({
+      hourly: {
+        time: ['2026-07-10T15:00', '2026-07-10T16:00'],
+        temperature_2m: [22, 21.5],
+        weather_code: [0, 1],
+        precipitation_probability: [0, 10],
+      },
+    });
+    expect(result.success).toBe(true);
+  });
+
+  it('rejects mismatched array lengths across the hourly block', () => {
+    const result = HourlyBlockSchema.safeParse({
+      hourly: {
+        time: ['2026-07-10T15:00', '2026-07-10T16:00'],
+        temperature_2m: [22],
+        weather_code: [0, 1],
+        precipitation_probability: [0, 10],
       },
     });
     expect(result.success).toBe(false);

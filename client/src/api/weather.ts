@@ -2,6 +2,7 @@ import type {
   City,
   ForecastResponse,
   GlobalAlertPayload,
+  HourlyResponse,
   WeatherResponse,
   WeatherSnapshotPayload,
 } from '../types.ts';
@@ -28,6 +29,12 @@ export async function fetchForecast(cityId: string, signal?: AbortSignal): Promi
   const res = await fetch(`/api/weather/forecast?city=${encodeURIComponent(cityId)}`, { signal });
   if (!res.ok) throw new Error('Failed to load forecast');
   return res.json() as Promise<ForecastResponse>;
+}
+
+export async function fetchHourly(cityId: string, signal?: AbortSignal): Promise<HourlyResponse> {
+  const res = await fetch(`/api/weather/hourly?city=${encodeURIComponent(cityId)}`, { signal });
+  if (!res.ok) throw new Error('Failed to load hourly forecast');
+  return res.json() as Promise<HourlyResponse>;
 }
 
 export async function fetchAlertHistory(): Promise<GlobalAlertPayload[]> {

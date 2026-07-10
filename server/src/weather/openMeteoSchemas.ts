@@ -52,3 +52,23 @@ export const DailyBlockSchema = z
       daily.weather_code.length === daily.time.length,
     { message: 'daily block arrays have mismatched lengths' }
   );
+
+// forecast_hours=N (rather than forecast_days) gives exactly the next N
+// hours starting from the current hour, not from local midnight — no
+// client- or server-side filtering needed to drop already-passed hours.
+export const HourlyBlockSchema = z
+  .object({
+    hourly: z.object({
+      time: z.array(z.string()),
+      temperature_2m: z.array(z.number()),
+      weather_code: z.array(z.number()),
+      precipitation_probability: z.array(z.number()),
+    }),
+  })
+  .refine(
+    ({ hourly }) =>
+      hourly.temperature_2m.length === hourly.time.length &&
+      hourly.weather_code.length === hourly.time.length &&
+      hourly.precipitation_probability.length === hourly.time.length,
+    { message: 'hourly block arrays have mismatched lengths' }
+  );
