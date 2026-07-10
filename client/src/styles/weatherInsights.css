@@ -1,0 +1,50 @@
+.weather-insights {
+  margin-top: 16px;
+  padding-top: 16px;
+  border-top: 1px solid var(--border);
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.weather-insights-row {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 8px;
+}
+
+.comfort-badge,
+.golden-hour-badge,
+.moon-phase-badge {
+  display: inline-flex;
+  align-items: center;
+  font-size: 0.75rem;
+  font-weight: 600;
+  padding: 3px 9px;
+  border-radius: 9999px;
+  background: var(--accent-bg);
+  color: var(--accent);
+}
+
+.comfort-badge[data-level='poor'],
+.comfort-badge[data-level='harsh'] {
+  background: rgba(220, 38, 38, 0.12);
+  color: var(--error);
+}
+
+.golden-hour-badge {
+  background: rgba(234, 179, 8, 0.15);
+  color: #b45309;
+}
+
+.moon-phase-badge {
+  background: var(--bg);
+  color: var(--muted);
+  border: 1px solid var(--border);
+}
+
+.activity-tip {
+  font-size: 0.85rem;
+  color: var(--text);
+}

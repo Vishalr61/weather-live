@@ -11,12 +11,14 @@ import { z } from 'zod';
 // (current= and daily= together) rather than two requests.
 export const CurrentConditionsSchema = z.object({
   current: z.object({
+    time: z.string(),
     temperature_2m: z.number(),
     weather_code: z.number(),
     wind_speed_10m: z.number(),
     wind_direction_10m: z.number(),
     relative_humidity_2m: z.number(),
     apparent_temperature: z.number(),
+    cloud_cover: z.number(),
   }),
   daily: z.object({
     sunrise: z.array(z.string()).length(1),

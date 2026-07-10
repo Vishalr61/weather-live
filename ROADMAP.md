@@ -300,6 +300,25 @@ enhancement work has continuity across sessions.
   expected — each unit rounds its own precise value rather than
   converting an already-rounded one); confirmed the preference survives
   a full page reload.
+- **Comfort score, activity tip, moon phase, golden hour** — a bigger
+  weather-feature batch this time (6 items, per request). These four are
+  the "cheap" quarter: pure client-side derived insights needing only
+  `cloud_cover` and `current.time` added to the already-combined
+  Open-Meteo call (`weatherInsights.ts` for the first three, deliberately
+  kept out of `three/geoMath.ts` despite the similar "coarse astronomical
+  calc" shape as `getSubsolarPoint` — that file imports `THREE.Vector3`,
+  and pulling it into an eagerly-rendered component would undo the
+  Globe lazy-load bundle split). Comfort score layers a humidity/wind
+  penalty on top of Open-Meteo's own feels-like (which already folds in
+  wind-chill/heat-index math). Golden hour compares `current.time`
+  against sunrise/sunset as wall-clock minutes — same city, same local
+  reference frame, no timezone math needed — gated on cloud cover under
+  60%. Verified live: Melbourne was 31 minutes from sunset with 16%
+  cloud cover at test time, correctly triggering the golden-hour badge;
+  comfort score (72 · Good) matched hand-calculating the formula against
+  the live feels-like/humidity values; wind direction 12° correctly
+  shown as "NNE". Confirmed the main bundle only grew ~2KB (232.94KB vs.
+  230.70KB) and the Globe chunk was untouched, proving the split held.
 
 ## Future ideas (not yet scheduled)
 

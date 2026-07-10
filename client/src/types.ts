@@ -64,6 +64,8 @@ export interface WeatherResponse {
   humidity: number;
   windSpeedKmh: number;
   windDirectionDeg: number;
+  cloudCoverPct: number;
+  currentTimeLocal: string;
   sunrise: string;
   sunset: string;
   uvIndexMax: number;

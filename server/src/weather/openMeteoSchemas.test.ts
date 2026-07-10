@@ -7,12 +7,14 @@ import {
 
 const WELL_FORMED_CURRENT = {
   current: {
+    time: '2026-07-10T16:30',
     temperature_2m: 21.5,
     weather_code: 3,
     wind_speed_10m: 10,
     wind_direction_10m: 180,
     relative_humidity_2m: 55,
     apparent_temperature: 20,
+    cloud_cover: 40,
   },
   daily: {
     sunrise: ['2026-07-10T07:34'],

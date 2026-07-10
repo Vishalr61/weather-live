@@ -75,7 +75,7 @@ export function weatherRouter(
     const url =
       `https://api.open-meteo.com/v1/forecast` +
       `?latitude=${city.lat}&longitude=${city.lng}` +
-      `&current=temperature_2m,weather_code,wind_speed_10m,wind_direction_10m,relative_humidity_2m,apparent_temperature` +
+      `&current=temperature_2m,weather_code,wind_speed_10m,wind_direction_10m,relative_humidity_2m,apparent_temperature,cloud_cover` +
       `&daily=sunrise,sunset,uv_index_max&forecast_days=1` +
       `&temperature_unit=celsius&wind_speed_unit=kmh&timezone=auto`;
 
@@ -103,6 +103,8 @@ export function weatherRouter(
       humidity: current.relative_humidity_2m,
       windSpeedKmh: current.wind_speed_10m,
       windDirectionDeg: current.wind_direction_10m,
+      cloudCoverPct: current.cloud_cover,
+      currentTimeLocal: current.time,
       sunrise: daily.sunrise[0],
       sunset: daily.sunset[0],
       uvIndexMax: daily.uv_index_max[0],
