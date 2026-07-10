@@ -1,5 +1,6 @@
 import type { City, WeatherSnapshotPayload } from '../types.ts';
 import { weatherCodeToColor } from '../three/weatherVisuals.ts';
+import { useUnit } from '../context/UnitContext.tsx';
 import '../styles/watchlist.css';
 
 interface WatchlistProps {
@@ -11,6 +12,7 @@ interface WatchlistProps {
 }
 
 export function Watchlist({ cityIds, cities, snapshot, onSelect, onRemove }: WatchlistProps) {
+  const { convertTemp } = useUnit();
   if (cityIds.length === 0) {
     return (
       <div className="watchlist watchlist--empty">
@@ -34,7 +36,7 @@ export function Watchlist({ cityIds, cities, snapshot, onSelect, onRemove }: Wat
                 />
               )}
               <span className="watchlist-item-label">{city?.label ?? id}</span>
-              {snap && <span className="watchlist-item-temp">{Math.round(snap.temp)}°</span>}
+              {snap && <span className="watchlist-item-temp">{Math.round(convertTemp(snap.temp))}°</span>}
             </button>
             <button
               type="button"

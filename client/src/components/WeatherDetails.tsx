@@ -1,4 +1,5 @@
 import type { WeatherResponse } from '../types.ts';
+import { useUnit } from '../context/UnitContext.tsx';
 import '../styles/weatherDetails.css';
 
 interface WeatherDetailsProps {
@@ -37,11 +38,13 @@ function formatLocalTime(isoLocal: string): string {
 }
 
 export function WeatherDetails({ weather }: WeatherDetailsProps) {
+  const { formatTemp } = useUnit();
+
   return (
     <div className="weather-details">
       <div className="weather-detail">
         <span className="weather-detail-label">Feels like</span>
-        <span className="weather-detail-value">{Math.round(weather.feelsLike)}°C</span>
+        <span className="weather-detail-value">{formatTemp(weather.feelsLike)}</span>
       </div>
       <div className="weather-detail">
         <span className="weather-detail-label">Humidity</span>

@@ -1,5 +1,6 @@
 import type { ForecastDay } from '../types.ts';
 import { weatherCodeToColor } from '../three/weatherVisuals.ts';
+import { useUnit } from '../context/UnitContext.tsx';
 import '../styles/forecastStrip.css';
 
 interface ForecastStripProps {
@@ -13,6 +14,7 @@ function dayLabel(dateStr: string, index: number): string {
 }
 
 export function ForecastStrip({ days }: ForecastStripProps) {
+  const { convertTemp } = useUnit();
   if (days.length === 0) return null;
 
   return (
@@ -25,8 +27,8 @@ export function ForecastStrip({ days }: ForecastStripProps) {
             style={{ background: weatherCodeToColor(day.weatherCode) }}
           />
           <span className="forecast-day-temps">
-            <span className="forecast-day-max">{Math.round(day.tempMax)}°</span>
-            <span className="forecast-day-min">{Math.round(day.tempMin)}°</span>
+            <span className="forecast-day-max">{Math.round(convertTemp(day.tempMax))}°</span>
+            <span className="forecast-day-min">{Math.round(convertTemp(day.tempMin))}°</span>
           </span>
         </div>
       ))}

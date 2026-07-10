@@ -163,10 +163,12 @@ weather-live/
     │   ├── hooks/         — useSocket, useMessages, useWeatherSnapshot,
     │   │                    useGlobalAlerts, useWatchlist, useSoundscape
     │   ├── context/       — AuthContext (isAuthenticated/isLoading via /api/auth/me;
-    │   │                    no token — it's in an httpOnly cookie, invisible to JS)
+    │   │                    no token — it's in an httpOnly cookie, invisible to JS),
+    │   │                    UnitContext (°C/°F — data stays Celsius, converts at display)
     │   ├── api/           — fetch wrappers (auth, weather)
     │   ├── styles/        — global, login, home, toast, globe, alertTicker,
-    │   │                    citySearch, watchlist, forecastStrip, trendSparkline
+    │   │                    citySearch, watchlist, forecastStrip, trendSparkline,
+    │   │                    weatherDetails
     │   └── types.ts       — mirrored client/server types
     └── vite.config.ts
 ```

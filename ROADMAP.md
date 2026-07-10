@@ -285,6 +285,21 @@ enhancement work has continuity across sessions.
   displaying the city's actual local wall-clock time. Verified live: all
   six values for Tokyo matched a direct curl check (wind direction 182°
   correctly shown as "S", UV 8.25 correctly banded as "Very High").
+- **°C/°F unit toggle** — new `UnitContext`/`UnitProvider` (mirrors the
+  `AuthContext` pattern, mounted at the `App.tsx` level) rather than
+  prop-drilling, since five different components display a temperature
+  (`Home`, `WeatherDetails`, `ForecastStrip`, `TrendSparkline`,
+  `Watchlist`). Server data stays Celsius always — conversion happens
+  only at the display layer via `formatTemp`/`convertTemp`, keyed off a
+  `localStorage`-persisted preference. `TrendSparkline` converts the
+  values array itself, not just the min/max range label, so the chart's
+  own scaling operates in the displayed unit. Verified live: toggled to
+  Fahrenheit and confirmed the main temp, feels-like, forecast strip,
+  sparkline range, and watchlist temps all converted correctly (small
+  ~1° differences between independently-rounded C/F displays are
+  expected — each unit rounds its own precise value rather than
+  converting an already-rounded one); confirmed the preference survives
+  a full page reload.
 
 ## Future ideas (not yet scheduled)
 

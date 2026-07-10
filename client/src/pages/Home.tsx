@@ -8,6 +8,7 @@ import { useGlobalAlerts } from '../hooks/useGlobalAlerts.ts';
 import { useSoundscape } from '../hooks/useSoundscape.ts';
 import { useWatchlist } from '../hooks/useWatchlist.ts';
 import { useTheme } from '../hooks/useTheme.ts';
+import { useUnit } from '../context/UnitContext.tsx';
 import { fetchCities, fetchForecast, fetchHistory, fetchWeather } from '../api/weather.ts';
 import { ToastContainer } from '../components/ToastContainer.tsx';
 import { ConnectionStatus } from '../components/ConnectionStatus.tsx';
@@ -20,6 +21,7 @@ import { TrendSparkline } from '../components/TrendSparkline.tsx';
 import { CitySearch } from '../components/CitySearch.tsx';
 import { SoundToggle } from '../components/SoundToggle.tsx';
 import { ThemeToggle } from '../components/ThemeToggle.tsx';
+import { UnitToggle } from '../components/UnitToggle.tsx';
 import { Watchlist } from '../components/Watchlist.tsx';
 import type { City, ForecastDay, WeatherResponse } from '../types.ts';
 import '../styles/home.css';
@@ -52,6 +54,7 @@ export function Home() {
   const [flyTo, setFlyTo] = useState<FlyToRequest | null>(null);
   const { enabled: soundEnabled, toggle: toggleSound } = useSoundscape(weather?.weatherCode ?? null);
   const { theme, toggleTheme } = useTheme();
+  const { formatTemp } = useUnit();
 
   // Tracks the in-flight request set for the most recently selected city, so
   // a slower older request that resolves after a newer selection can't
@@ -138,6 +141,7 @@ export function Home() {
         <span className="home-title">⛅ Weather Live</span>
         <ConnectionStatus status={status} />
         <div className="home-header-actions">
+          <UnitToggle />
           <ThemeToggle theme={theme} onToggle={toggleTheme} />
           <SoundToggle enabled={soundEnabled} onToggle={toggleSound} />
           <button onClick={handleLogout} className="logout-btn">Sign out</button>
@@ -197,7 +201,7 @@ export function Home() {
               <WeatherParticles weatherCode={weather.weatherCode} />
               <div className="weather-card-content">
                 <h2>{weather.city}</h2>
-                <p className="weather-temp">{weather.temp}°C</p>
+                <p className="weather-temp">{formatTemp(weather.temp)}</p>
                 <p className="weather-desc">{weather.description}</p>
                 <WeatherDetails weather={weather} />
                 <TrendSparkline days={history} />
