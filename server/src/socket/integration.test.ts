@@ -50,10 +50,14 @@ afterAll(async () => {
   await new Promise<void>((resolve) => httpServer.close(() => resolve()));
 });
 
+// The real app sends the token via an httpOnly cookie (browsers attach it
+// automatically); a Node socket.io-client has no cookie jar, so it's set
+// explicitly here via extraHeaders — this exercises the same
+// socket.handshake.headers.cookie parsing path the real server uses.
 function connect(token?: string): Promise<ClientSocket> {
   return new Promise((resolve, reject) => {
     const socket = ioClient(`http://localhost:${port}`, {
-      auth: token !== undefined ? { token } : {},
+      extraHeaders: token !== undefined ? { Cookie: `token=${token}` } : {},
       reconnection: false,
       forceNew: true,
     });

@@ -88,6 +88,14 @@ sequenceDiagram
 
 `useWatchlist` (`client/src/hooks/useWatchlist.ts`) owns room membership: it's persisted to `localStorage`, diffed on every add/remove to emit only `watchCity`/`unwatchCity` for the actual change, and fully re-joined on the socket's `connect`/`reconnect` events so a dropped connection doesn't silently lose alert coverage for cities watched before the bounce. Removing a city from the watchlist stops its alerts but doesn't affect what's currently shown in the detail panel — viewing and watching are related (viewing adds to the watchlist) but not the same state.
 
+### Authentication
+
+The JWT lives in an httpOnly cookie, not `localStorage` — JS (and therefore an XSS payload) genuinely cannot read it; `/login` and `/register` set it via `Set-Cookie` and never return it in the JSON body, since a token in the response body would defeat the point just as much as one in `localStorage` would.
+
+Because the client can't read the cookie to know whether it's logged in, `GET /api/auth/me` exists purely to answer that question: it reads the cookie server-side, verifies the JWT, and returns the `userId` or 401. `AuthContext` calls it once on mount (`isLoading` covers that round trip — `ProtectedRoute` renders nothing until it resolves, rather than flashing a redirect to `/login` for an already-authenticated user) and again right after a successful login/register. `POST /api/auth/logout` clears the cookie server-side, since client-side JS can't delete an httpOnly cookie either.
+
+The Socket.IO handshake reads the same cookie — `socket.handshake.headers.cookie`, parsed with the `cookie` package, since Engine.IO doesn't parse cookies itself — instead of the explicit `auth: { token }` payload the client used to send. The client connects with `io({ withCredentials: true })` so the browser attaches the cookie automatically; CORS on both the Express app and the Socket.IO server needs `credentials: true` alongside the (already-explicit, not wildcard) origin for that to work.
+
 ### The weather poller and its two broadcast channels
 
 `server/src/weather/poller.ts` fetches all 27 cities in one batched Open-Meteo call, evaluates each against `alertRules.ts`, and tracks per-city severity in `alertState.ts` so a broadcast only fires on the *transition* into `severe` — not on every poll while conditions stay severe. Two distinct channels come out of this, deliberately kept separate:
@@ -124,10 +132,11 @@ weather-live/
 ├── server/
 │   ├── src/
 │   │   ├── auth/          — bcrypt + JWT helpers, in-memory user store
-│   │   ├── routes/        — login, weather (cities/batch/poll-now/current/forecast/
-│   │   │                    history/alerts), messages (+ supertest coverage for all)
-│   │   ├── socket/        — JWT handshake middleware, watch/unwatch room handlers
-│   │   │                    (+ real multi-client Socket.IO integration test)
+│   │   ├── routes/        — login/register/logout/me (httpOnly cookie auth), weather
+│   │   │                    (cities/batch/poll-now/current/forecast/history/alerts),
+│   │   │                    messages (+ supertest coverage for all)
+│   │   ├── socket/        — cookie-reading JWT handshake middleware, watch/unwatch
+│   │   │                    room handlers (+ real multi-client integration test)
 │   │   ├── middleware/    — shared per-IP rate limiter (+ tests)
 │   │   ├── data/          — curated city list
 │   │   ├── weather/       — poller, batched Open-Meteo client + Zod response schemas,
@@ -153,7 +162,8 @@ weather-live/
     │   ├── audio/         — soundscapeEngine (imperative Web Audio graph)
     │   ├── hooks/         — useSocket, useMessages, useWeatherSnapshot,
     │   │                    useGlobalAlerts, useWatchlist, useSoundscape
-    │   ├── context/       — AuthContext
+    │   ├── context/       — AuthContext (isAuthenticated/isLoading via /api/auth/me;
+    │   │                    no token — it's in an httpOnly cookie, invisible to JS)
     │   ├── api/           — fetch wrappers (auth, weather)
     │   ├── styles/        — global, login, home, toast, globe, alertTicker,
     │   │                    citySearch, watchlist, forecastStrip, trendSparkline
@@ -166,7 +176,7 @@ weather-live/
 - **Express over NestJS** — NestJS adds structure that pays off at scale; for a three-route API it's overhead with no payoff.
 - **Open-Meteo over OpenWeatherMap** — no API key means a reviewer can clone and run with zero extra setup. The trade-off is less control over rate limits and response schema stability.
 - **Curated city list over free-text geocoding** — deterministic slugs make room names predictable and keep the curl examples clean. A geocoding call would add latency and a second external dependency.
-- **localStorage JWT over HttpOnly cookies** — localStorage is vulnerable to XSS; HttpOnly cookies are the correct production approach. Pragmatic for a local demo with no third-party scripts.
+- **No CSRF token scheme alongside the httpOnly cookie** — `sameSite: 'lax'` already blocks the classic cross-site-POST CSRF case, and this app has no authenticated state-changing REST endpoint to forge (`POST /api/messages` and `/poll-now` are deliberately unauthenticated ops routes; the only thing the cookie gates is the Socket.IO handshake, which isn't forgeable the way a hidden form submission is). A double-submit token would be defense with nothing to defend.
 - **Type duplication between client and server** — a shared package would require a workspace build step that adds reviewer setup friction. Duplication is the honest trade-off at this scope.
 - **No Docker** — a reviewer can run the project with two `npm` commands. Docker adds nothing here except a longer setup section.
 - **In-memory storage** — the brief explicitly permitted in-memory; adding persistence would have been over-engineering. State is lost on restart; persistent storage is item 3 under What I'd add.
@@ -182,7 +192,6 @@ weather-live/
 - **Persistent database** (Postgres + an ORM) — replaces the in-memory user store and message log
 - **Distributed tracing** (OpenTelemetry) — structured logging (below) covers "what's happening right now"; correlating a request across HTTP → Socket.IO → the poller would need real spans, which is a bigger lift
 - **Fetch-mocked tests for the poller and the live-Open-Meteo routes** (`/api/weather`, `/forecast`, `/history`) — same reasoning as the alert-threshold logic: mocking `fetch` is more effort than this portfolio-scale project needs when live curl checks already cover them each time they change
-- **HttpOnly cookies** for token storage — eliminates the XSS surface of localStorage
 - **Email verification on registration** — `POST /api/auth/register` exists now (see below) but doesn't verify email ownership, since that needs real SMTP/third-party infrastructure to actually test end to end
 - **A real database for alert history** — currently an append-to-disk JSON file (`server/.data/alert-history.json`, capped at 100 entries), which survives restarts but isn't queryable/filterable the way a real deployment would want
 
@@ -197,8 +206,10 @@ Room targeting was verified manually with a three-terminal setup (server, browse
 
 Reconnect handling (Manager-level `reconnect` event + explicit room rejoin) is present in code but not testable through Vite's dev proxy, which doesn't recover from a backend that disappears mid-session. Behind a real reverse proxy (nginx, Caddy, AWS ALB) the WebSocket connection re-establishes cleanly when the backend recovers, which is what the reconnect handlers in the code are designed for.
 
-The alert-threshold logic (`evaluateAlert`, `recordAndCheckEdge`), the Open-Meteo response schemas, and the HTTP routes with no external network dependency are unit/integration-tested — `cd server && npm test` (50 tests as of writing). The route tests use `supertest` against the real Express routers with dependencies stubbed at their existing factory boundaries — a mocked `io` for `messagesRouter` (covering the same subscribed/unsubscribed recipients matrix above, now automated), stub `getSnapshot`/`pollNow` functions for `weatherRouter`. `POST /api/auth/login` runs against the real `bcrypt`/JWT code paths, with `JWT_SECRET` set in `vitest.setup.ts` so tests don't depend on a real `.env` file existing. Routes that call live Open-Meteo (`/api/weather`, `/forecast`, `/history`) are deliberately left out of the automated suite — same reasoning as the poller itself — and covered by live curl/browser checks instead whenever they change.
+The alert-threshold logic (`evaluateAlert`, `recordAndCheckEdge`), the Open-Meteo response schemas, and the HTTP routes with no external network dependency are unit/integration-tested — `cd server && npm test` (54 tests as of writing). The route tests use `supertest` against the real Express routers with dependencies stubbed at their existing factory boundaries — a mocked `io` for `messagesRouter` (covering the same subscribed/unsubscribed recipients matrix above, now automated), stub `getSnapshot`/`pollNow` functions for `weatherRouter`. `auth.test.ts` runs against the real `bcrypt`/JWT/cookie code paths (`JWT_SECRET` is set in `vitest.setup.ts` so tests don't depend on a real `.env` file existing) — since supertest doesn't manage a cookie jar across requests the way a browser does, a small helper extracts the raw `Set-Cookie` value from one response so a later request can `.set('Cookie', ...)` with it explicitly, covering `/login` → `/me` → `/logout` → `/me` round trips and asserting the `Set-Cookie` header actually carries `HttpOnly`. Routes that call live Open-Meteo (`/api/weather`, `/forecast`, `/history`) are deliberately left out of the automated suite — same reasoning as the poller itself — and covered by live curl/browser checks instead whenever they change.
 
-`server/src/socket/integration.test.ts` goes one step further than the mocked-`io` route tests: a real Socket.IO server on an ephemeral port, with real `socket.io-client` connections, verifying handshake auth (missing/invalid/valid token) and the actual room-targeting behavior — a message pushed to one city's room reaches only the client watching it, a client can watch multiple cities and receive alerts for either, and `unwatchCity` genuinely stops delivery. This is what the manual verification matrix above used to be the only coverage for.
+`server/src/socket/integration.test.ts` goes one step further than the mocked-`io` route tests: a real Socket.IO server on an ephemeral port, with real `socket.io-client` connections, verifying handshake auth (missing/invalid/valid token) and the actual room-targeting behavior — a message pushed to one city's room reaches only the client watching it, a client can watch multiple cities and receive alerts for either, and `unwatchCity` genuinely stops delivery. Node's `socket.io-client` has no browser cookie jar, so the token is attached via `extraHeaders: { Cookie: 'token=...' }` on connect, exercising the same `socket.handshake.headers.cookie` parsing path the real server uses. This is what the manual verification matrix above used to be the only coverage for.
 
 The globe and poller were verified end-to-end with a headless-browser session: logged in, confirmed the globe renders 27 correctly-positioned markers (spot-checked against real geography — e.g. clicking the marker next to South America on the visible hemisphere selected Cape Town, consistent with Africa sitting just east of South America across the Atlantic at this rotation), clicked a marker and confirmed the weather card and `<select>` update in sync, confirmed zero console errors and zero failed asset/socket requests, and re-ran the original curl-based subscribed/unsubscribed toast test to confirm the poller changes didn't regress the existing room-targeting mechanic.
+
+The httpOnly-cookie auth migration was verified with a battery of live browser checks: an unauthenticated visit to `/` redirects to `/login`; after login, `document.cookie` in the page's own JS context genuinely does not contain the token (proving `httpOnly` rather than just trusting the flag); the socket connects; a full page reload while authenticated stays on the home page (the `/api/auth/me` round trip working correctly, not just a one-time login flash); logout redirects to `/login` and a subsequent visit to `/` stays logged out (the cookie was actually cleared server-side, not just forgotten client-side); registration still auto-logs-in via the same cookie path; and the subscribed/unsubscribed toast test still passes after the Socket.IO handshake rewrite.

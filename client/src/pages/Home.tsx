@@ -126,8 +126,8 @@ export function Home() {
     if (cityId) setFlyTo({ cityId, nonce: Date.now() });
   };
 
-  const handleLogout = () => {
-    logout();
+  const handleLogout = async () => {
+    await logout();
     navigate('/login', { replace: true });
   };
 

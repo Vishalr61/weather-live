@@ -1,38 +1,53 @@
-import { createContext, useCallback, useContext, useState } from 'react';
+import { createContext, useCallback, useContext, useEffect, useState } from 'react';
 import type { ReactNode } from 'react';
 
 interface AuthContextValue {
-  token: string | null;
   isAuthenticated: boolean;
-  login: (token: string) => void;
-  logout: () => void;
+  isLoading: boolean;
+  login: () => Promise<void>;
+  logout: () => Promise<void>;
 }
 
 const AuthContext = createContext<AuthContextValue | null>(null);
 
 export function AuthProvider({ children }: { children: ReactNode }) {
-  const [token, setToken] = useState<string | null>(
-    () => localStorage.getItem('token')
-  );
+  const [isAuthenticated, setIsAuthenticated] = useState(false);
+  // True until the initial /api/auth/me check resolves — the token now
+  // lives in an httpOnly cookie, invisible to JS, so there's no synchronous
+  // localStorage read to seed this state with anymore; ProtectedRoute waits
+  // on this instead of guessing.
+  const [isLoading, setIsLoading] = useState(true);
 
-  // localStorage is acceptable for a demo but is vulnerable to XSS.
-  // In production: HttpOnly cookie set by the server, not accessible to JS.
-  const login = useCallback((t: string) => {
-    localStorage.setItem('token', t);
-    setToken(t);
+  const checkAuth = useCallback(async () => {
+    try {
+      const res = await fetch('/api/auth/me', { credentials: 'include' });
+      setIsAuthenticated(res.ok);
+    } catch {
+      setIsAuthenticated(false);
+    }
   }, []);
 
-  const logout = useCallback(() => {
-    localStorage.removeItem('token');
-    setToken(null);
+  useEffect(() => {
+    void checkAuth().finally(() => setIsLoading(false));
+  }, [checkAuth]);
+
+  // Called after a successful login/register fetch, which already set the
+  // cookie via Set-Cookie — this just confirms it landed and flips local
+  // state, rather than the caller managing a token directly.
+  const login = useCallback(async () => {
+    await checkAuth();
+  }, [checkAuth]);
+
+  const logout = useCallback(async () => {
+    try {
+      await fetch('/api/auth/logout', { method: 'POST', credentials: 'include' });
+    } finally {
+      setIsAuthenticated(false);
+    }
   }, []);
 
-  // Note: isAuthenticated is true for any non-null token string, including
-  // expired ones. ProtectedRoute lets the user through, but the socket
-  // handshake or API call will fail with 401/connect_error. Commit 9 handles
-  // this by calling logout() reactively on those failures.
   return (
-    <AuthContext.Provider value={{ token, isAuthenticated: token !== null, login, logout }}>
+    <AuthContext.Provider value={{ isAuthenticated, isLoading, login, logout }}>
       {children}
     </AuthContext.Provider>
   );

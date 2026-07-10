@@ -17,8 +17,8 @@ export function Register() {
     setError(null);
     setLoading(true);
     try {
-      const { token } = await registerRequest(username, password);
-      login(token);
+      await registerRequest(username, password);
+      await login();
       navigate('/');
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Registration failed');

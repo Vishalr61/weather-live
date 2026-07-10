@@ -1,4 +1,5 @@
 import type { Server } from 'socket.io';
+import { parseCookie } from 'cookie';
 import { verifyToken } from '../auth/jwt.js';
 import type {
   ServerToClientEvents,
@@ -16,9 +17,13 @@ type IOServer = Server<
 
 export function registerAuthMiddleware(io: IOServer): void {
   // Verify JWT once at connection time rather than on every event — a failed
-  // handshake disconnects the socket before any room logic runs.
+  // handshake disconnects the socket before any room logic runs. The token
+  // now rides along in the httpOnly cookie (client connects with
+  // withCredentials: true) rather than an explicit auth.token payload —
+  // socket.io doesn't parse cookies itself, so the raw header is parsed here.
   io.use((socket, next) => {
-    const token = socket.handshake.auth?.token as string | undefined;
+    const rawCookie = socket.handshake.headers.cookie;
+    const token = rawCookie ? parseCookie(rawCookie).token : undefined;
     if (!token) {
       return next(new Error('authentication required'));
     }

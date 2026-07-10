@@ -1,7 +1,8 @@
 import { Router } from 'express';
+import type { Response } from 'express';
 import { z } from 'zod';
 import { addUser, findByUsername, hashPassword, verifyPassword } from '../auth/users.js';
-import { signToken } from '../auth/jwt.js';
+import { signToken, verifyToken } from '../auth/jwt.js';
 import { registerRateLimit } from '../middleware/rateLimit.js';
 
 const router = Router();
@@ -10,6 +11,39 @@ const router = Router();
 // same amount of time on when the username doesn't exist, so an unknown
 // username can't be distinguished from a wrong password by response time.
 const DUMMY_HASH = '$2b$10$CwTycUXWue0Thq9StjUM0uJ8p8ZjhOJHAeVBpUX2FxEEBw//sIVh6';
+
+const COOKIE_NAME = 'token';
+const COOKIE_MAX_AGE_MS = 8 * 60 * 60 * 1000; // matches signToken's 8h JWT expiry
+
+// httpOnly so XSS can't read the token via document.cookie or JS — the
+// whole point of this migration away from localStorage. secure is
+// conditional because the dev server runs over plain http; a `secure`
+// cookie is silently dropped by the browser over http, not just insecure.
+// sameSite: 'lax' blocks the classic CSRF case (a cross-site POST from
+// another origin) while still sending the cookie on normal top-level
+// navigation. No separate CSRF token scheme: this app has no authenticated
+// state-changing REST endpoint to forge (POST /api/messages and /poll-now
+// are deliberately unauthenticated ops routes) — the only thing the cookie
+// gates is the Socket.IO handshake, which isn't forgeable the way a hidden
+// form submission is.
+function setAuthCookie(res: Response, token: string): void {
+  res.cookie(COOKIE_NAME, token, {
+    httpOnly: true,
+    secure: process.env.NODE_ENV === 'production',
+    sameSite: 'lax',
+    maxAge: COOKIE_MAX_AGE_MS,
+    path: '/',
+  });
+}
+
+function clearAuthCookie(res: Response): void {
+  res.clearCookie(COOKIE_NAME, {
+    httpOnly: true,
+    secure: process.env.NODE_ENV === 'production',
+    sameSite: 'lax',
+    path: '/',
+  });
+}
 
 const LoginBody = z.object({
   username: z.string().min(1),
@@ -48,7 +82,8 @@ router.post('/login', async (req, res) => {
     return;
   }
 
-  res.json({ token: signToken(user.id) });
+  setAuthCookie(res, signToken(user.id));
+  res.json({ ok: true });
 });
 
 // No email verification — would need real SMTP/third-party infrastructure
@@ -69,7 +104,29 @@ router.post('/register', registerRateLimit, async (req, res) => {
 
   const passwordHash = await hashPassword(password);
   const user = addUser(username, passwordHash);
-  res.status(201).json({ token: signToken(user.id) });
+  setAuthCookie(res, signToken(user.id));
+  res.status(201).json({ ok: true });
+});
+
+router.post('/logout', (_req, res) => {
+  clearAuthCookie(res);
+  res.json({ ok: true });
+});
+
+// The client can't read an httpOnly cookie directly — this is how it asks
+// "am I logged in" without the token ever touching JS.
+router.get('/me', (req, res) => {
+  const token = req.cookies?.[COOKIE_NAME] as string | undefined;
+  if (!token) {
+    res.status(401).json({ error: 'not authenticated' });
+    return;
+  }
+  try {
+    const payload = verifyToken(token);
+    res.json({ userId: payload.sub });
+  } catch {
+    res.status(401).json({ error: 'not authenticated' });
+  }
 });
 
 export default router;

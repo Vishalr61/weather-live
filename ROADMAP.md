@@ -225,16 +225,56 @@ enhancement work has continuity across sessions.
   alongside the test results. Verified live: restarted the dev server
   and confirmed startup, poll-cycle, socket-connection, and
   request-completion logs all render correctly with real data.
+- **HttpOnly cookie auth migration** — the big one this session had been
+  deliberately deferring batch after batch. Moved the JWT from
+  `localStorage` to an httpOnly `Set-Cookie`, so an XSS payload genuinely
+  cannot read it anymore — the token no longer appears in any JSON
+  response body either, since that would defeat the point just as much.
+  New `GET /api/auth/me` (the client can't read an httpOnly cookie, so
+  this is how it asks "am I logged in") and `POST /api/auth/logout`
+  (client JS can't clear an httpOnly cookie either). The Socket.IO
+  handshake now reads the cookie (`socket.handshake.headers.cookie`,
+  parsed with the `cookie` package) instead of an explicit `auth.token`
+  payload; the client connects with `withCredentials: true`. CORS on
+  both the Express app and the Socket.IO server needed `credentials:
+  true` alongside the already-explicit origin. No CSRF token scheme
+  added: `sameSite: 'lax'` covers the classic case, and this app has no
+  authenticated state-changing REST endpoint to forge in the first place.
+
+  `AuthContext` was rewritten around `isAuthenticated`/`isLoading`
+  instead of a `token` string — `isLoading` covers the async `/me` round
+  trip on mount, which `ProtectedRoute` waits on rather than flashing a
+  redirect to `/login` for an already-authenticated user. All 6
+  consumers of `useAuth()` updated (`ProtectedRoute`, `useSocket`,
+  `Login`, `Register`, `Home`, `AuthContext` itself).
+
+  Hit two real snags: the `cookie` package's v2 API turned out to export
+  `parseCookie`/`stringifyCookie`, not the classic `parse`/`serialize`
+  names I expected — caught immediately by the typecheck. And both
+  `auth.test.ts` and the Socket.IO integration test needed rewrites since
+  they exercised the old token-in-body / `auth.token` mechanics —
+  supertest doesn't manage a cookie jar across requests, so a helper
+  extracts the raw `Set-Cookie` value for later requests to `.set()`
+  explicitly; the Node socket.io-client test uses `extraHeaders: {
+  Cookie: ... }` since it has no browser cookie jar either.
+
+  Verified with a battery of live browser checks (not just the test
+  suite): unauthenticated `/` redirects to `/login`; after login,
+  `document.cookie` genuinely doesn't contain the token (proving
+  `httpOnly`, not just trusting the flag); a full page reload while
+  authenticated stays on the home page; logout redirects to `/login` and
+  a subsequent visit stays logged out (cookie actually cleared
+  server-side); registration's auto-login still works; and the
+  subscribed/unsubscribed toast regression test still passes after the
+  handshake rewrite. 54 server tests passing, both builds clean.
 
 ## Future ideas (not yet scheduled)
 
 - Persistent database (Postgres) replacing the in-memory user store and
   the append-to-disk alert history
-- Refresh tokens with rotation
-- HttpOnly cookies for token storage instead of localStorage — deliberately
-  deferred out of this batch: it touches auth, the Socket.IO handshake,
-  and CORS all at once, and needs its own focused session rather than
-  being bundled with smaller items
+- Refresh tokens with rotation — layers naturally on top of the cookie
+  now that it exists: a short-lived access token cookie plus a longer-
+  lived refresh cookie
 - Distributed tracing (OpenTelemetry) — correlating a request across
   HTTP → Socket.IO → the poller would need real spans, on top of the
   structured logging that now exists
