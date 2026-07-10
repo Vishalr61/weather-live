@@ -67,11 +67,17 @@ export function weatherRouter(
     const city = resolveCityFromQuery(req, res);
     if (!city) return;
 
+    // current= for right-now conditions; daily= (forecast_days=1) for
+    // sunrise/sunset/UV-max, which only exist as daily-block fields even
+    // though they describe "today" — one combined request either way.
+    // timezone=auto so sunrise/sunset come back in the city's own local
+    // time, not UTC.
     const url =
       `https://api.open-meteo.com/v1/forecast` +
       `?latitude=${city.lat}&longitude=${city.lng}` +
-      `&current=temperature_2m,weather_code` +
-      `&temperature_unit=celsius`;
+      `&current=temperature_2m,weather_code,wind_speed_10m,wind_direction_10m,relative_humidity_2m,apparent_temperature` +
+      `&daily=sunrise,sunset,uv_index_max&forecast_days=1` +
+      `&temperature_unit=celsius&wind_speed_unit=kmh&timezone=auto`;
 
     const upstream = await fetch(url);
     if (!upstream.ok) {
@@ -86,13 +92,20 @@ export function weatherRouter(
       return;
     }
 
-    const { current } = result.data;
+    const { current, daily } = result.data;
     res.json({
       city: city.label,
       cityId: city.id,
       temp: current.temperature_2m,
       weatherCode: current.weather_code,
       description: describeWeatherCode(current.weather_code),
+      feelsLike: current.apparent_temperature,
+      humidity: current.relative_humidity_2m,
+      windSpeedKmh: current.wind_speed_10m,
+      windDirectionDeg: current.wind_direction_10m,
+      sunrise: daily.sunrise[0],
+      sunset: daily.sunset[0],
+      uvIndexMax: daily.uv_index_max[0],
     });
   });
 

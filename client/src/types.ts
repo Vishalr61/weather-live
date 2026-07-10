@@ -60,6 +60,13 @@ export interface WeatherResponse {
   temp: number;
   weatherCode: number;
   description: string;
+  feelsLike: number;
+  humidity: number;
+  windSpeedKmh: number;
+  windDirectionDeg: number;
+  sunrise: string;
+  sunset: string;
+  uvIndexMax: number;
 }
 
 export interface ForecastDay {

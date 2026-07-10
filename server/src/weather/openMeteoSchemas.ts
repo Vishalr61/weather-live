@@ -5,10 +5,23 @@ import { z } from 'zod';
 // undefined that flows all the way to the client instead of a clear failure
 // at the point of ingestion.
 
+// Used by GET /api/weather — current conditions plus today's sunrise/
+// sunset/UV-max, which are daily-block fields even though they describe
+// "right now" from a display perspective. One combined Open-Meteo call
+// (current= and daily= together) rather than two requests.
 export const CurrentConditionsSchema = z.object({
   current: z.object({
     temperature_2m: z.number(),
     weather_code: z.number(),
+    wind_speed_10m: z.number(),
+    wind_direction_10m: z.number(),
+    relative_humidity_2m: z.number(),
+    apparent_temperature: z.number(),
+  }),
+  daily: z.object({
+    sunrise: z.array(z.string()).length(1),
+    sunset: z.array(z.string()).length(1),
+    uv_index_max: z.array(z.number()).length(1),
   }),
 });
 

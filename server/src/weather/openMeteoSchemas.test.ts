@@ -5,11 +5,25 @@ import {
   DailyBlockSchema,
 } from './openMeteoSchemas.js';
 
+const WELL_FORMED_CURRENT = {
+  current: {
+    temperature_2m: 21.5,
+    weather_code: 3,
+    wind_speed_10m: 10,
+    wind_direction_10m: 180,
+    relative_humidity_2m: 55,
+    apparent_temperature: 20,
+  },
+  daily: {
+    sunrise: ['2026-07-10T07:34'],
+    sunset: ['2026-07-10T17:16'],
+    uv_index_max: [3.0],
+  },
+};
+
 describe('CurrentConditionsSchema', () => {
-  it('accepts a well-formed current-conditions response', () => {
-    const result = CurrentConditionsSchema.safeParse({
-      current: { temperature_2m: 21.5, weather_code: 3 },
-    });
+  it('accepts a well-formed current-conditions + today response', () => {
+    const result = CurrentConditionsSchema.safeParse(WELL_FORMED_CURRENT);
     expect(result.success).toBe(true);
   });
 
@@ -19,15 +33,26 @@ describe('CurrentConditionsSchema', () => {
   });
 
   it('rejects a renamed/missing field (e.g. weather_code -> weathercode)', () => {
+    const { current: _current, ...rest } = WELL_FORMED_CURRENT;
     const result = CurrentConditionsSchema.safeParse({
-      current: { temperature_2m: 21.5, weathercode: 3 },
+      ...rest,
+      current: { ...WELL_FORMED_CURRENT.current, weather_code: undefined, weathercode: 3 },
     });
     expect(result.success).toBe(false);
   });
 
   it('rejects a wrong-typed field', () => {
     const result = CurrentConditionsSchema.safeParse({
-      current: { temperature_2m: '21.5', weather_code: 3 },
+      ...WELL_FORMED_CURRENT,
+      current: { ...WELL_FORMED_CURRENT.current, temperature_2m: '21.5' },
+    });
+    expect(result.success).toBe(false);
+  });
+
+  it('rejects a daily block missing sunrise/sunset/uv_index_max', () => {
+    const result = CurrentConditionsSchema.safeParse({
+      current: WELL_FORMED_CURRENT.current,
+      daily: {},
     });
     expect(result.success).toBe(false);
   });

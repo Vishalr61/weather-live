@@ -267,6 +267,24 @@ enhancement work has continuity across sessions.
   server-side); registration's auto-login still works; and the
   subscribed/unsubscribed toast regression test still passes after the
   handshake rewrite. 54 server tests passing, both builds clean.
+- **Today's full details — wind, humidity, feels-like, sunrise/sunset, UV
+  index** — the first of a batch of weather-app-focused features (a
+  deliberate shift back from infrastructure hardening, per request).
+  `GET /api/weather?city=` now requests `current=` (temp, weather code,
+  wind speed/direction, humidity, apparent temperature) and `daily=`
+  (sunrise, sunset, UV index max, `forecast_days=1`) in one combined
+  Open-Meteo call rather than a second request — sunrise/sunset/UV only
+  exist as daily-block fields even though they describe "today."
+  `CurrentConditionsSchema` extended to match, with a new test covering
+  the daily sub-block. New `WeatherDetails.tsx` renders a 2-column grid:
+  wind speed converted to a 16-point compass direction, UV index paired
+  with its standard Low/Moderate/High/Very High/Extreme band, and
+  sunrise/sunset formatted directly from Open-Meteo's local-time string
+  rather than through `Date` — parsing a timezone-less ISO string with
+  `Date` reinterprets it against the *viewer's* timezone instead of just
+  displaying the city's actual local wall-clock time. Verified live: all
+  six values for Tokyo matched a direct curl check (wind direction 182°
+  correctly shown as "S", UV 8.25 correctly banded as "Very High").
 
 ## Future ideas (not yet scheduled)
 

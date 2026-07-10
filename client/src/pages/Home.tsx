@@ -14,6 +14,7 @@ import { ConnectionStatus } from '../components/ConnectionStatus.tsx';
 import type { FlyToRequest } from '../components/Globe.tsx';
 import { AlertTicker } from '../components/AlertTicker.tsx';
 import { WeatherParticles } from '../components/WeatherParticles.tsx';
+import { WeatherDetails } from '../components/WeatherDetails.tsx';
 import { ForecastStrip } from '../components/ForecastStrip.tsx';
 import { TrendSparkline } from '../components/TrendSparkline.tsx';
 import { CitySearch } from '../components/CitySearch.tsx';
@@ -198,6 +199,7 @@ export function Home() {
                 <h2>{weather.city}</h2>
                 <p className="weather-temp">{weather.temp}°C</p>
                 <p className="weather-desc">{weather.description}</p>
+                <WeatherDetails weather={weather} />
                 <TrendSparkline days={history} />
                 <ForecastStrip days={forecast} />
               </div>

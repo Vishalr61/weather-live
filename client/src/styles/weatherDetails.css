@@ -1,0 +1,27 @@
+.weather-details {
+  display: grid;
+  grid-template-columns: repeat(2, 1fr);
+  gap: 10px 16px;
+  margin-top: 16px;
+  padding-top: 16px;
+  border-top: 1px solid var(--border);
+}
+
+.weather-detail {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+
+.weather-detail-label {
+  font-size: 0.7rem;
+  color: var(--muted);
+  text-transform: uppercase;
+  letter-spacing: 0.03em;
+}
+
+.weather-detail-value {
+  font-size: 0.9rem;
+  font-weight: 600;
+  color: var(--text);
+}
